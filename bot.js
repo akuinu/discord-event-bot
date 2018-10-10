@@ -6,7 +6,7 @@ const { Client, RichEmbed } = require('discord.js');
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-  // starting up checks
+  // starting up - checks all event channel for race event messages
   client.guilds.forEach(guild => {
     if (config.servers.hasOwnProperty(guild.id)) {
       if(config.servers[guild.id].hasOwnProperty("eventChannel")){
@@ -18,6 +18,9 @@ client.on('ready', () => {
                   .then(myMessage =>{
                     oldMessageCheck(myMessage);
                   }).catch(console.error);
+              }else {
+                // removing non interesting messages from cache
+                message.channel.messages.delete(message.id);
               }
             });
           }).catch(console.error);
@@ -26,75 +29,83 @@ client.on('ready', () => {
   });
 });
 
+client.on('messageReactionRemove', (reaction, user) => {
+    if(!(reaction.emoji.name === '❌' && user.id == getRaceCreator(reaction.message))) {
+      updateRunners(reaction.message);
+    }
+});
+
 client.on('message', msg => {
-  if (msg.content.substring(0, 1) == '!') {
-    if (isAllowedToHostRace(msg) && inWatchlist(msg)) {
+  if (msg.content.startsWith("!") && isAllowedToHostRace(msg) && inWatchlist(msg)) {
+    /*
+      // no command uses !command arg1 arg2 ... format
       let args = msg.content.substring(1).split(' ');
-      var cmd = args[0];
-      args = args.splice(1);
-      switch(cmd) {
-        case 'race':
-          const embed = new RichEmbed()
-            .setColor(0xFF0000)
-            .setAuthor("Race created by " +  msg.author.username,  msg.author.displayAvatarURL)
-            .setFooter("Race powered by Race Bot", client.user.displayAvatarURL)
-            .setTimestamp(new Date);
-          let options = msg.content.substring(6).split('--');
-          options.forEach(option => {
-            console.log(option);
-            switch(option.split(' ')[0]) {
-              case 'type':
-                embed.addField("Race type:", trimOptions(option), true);
-              break;
-              case 'date':
-                embed.addField("Date:", trimOptions(option), true);
-              break;
-              case 'time':
-                embed.addField("Time:", trimOptions(option), true);
-              break;
-              case 'rules':
-                embed.addField("Rules:", trimOptions(option), true);
-              break;
-              case 'icon':
-                embed.setThumbnail(option.substring(5));
-              break;
-              case 'img':
-                embed.setImage(option.substring(4));
-              break;
-            }
-          });
-          embed.addField("Runners", '\u200B')
-            .addBlankField()
-            .addField("React to join the race.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
-          try {
-            client.channels.get(getEventChannelId(msg)).send(embed)
-              .then(message => addCollector(message))
-              .catch(console.error);
-          } catch (e) {
-            msg.reply(e);
+      var cmd = args.shift();
+    */
+    switch(msg.content.substring(1).split(' ')[0]) {
+      case 'race':
+        const embed = new RichEmbed()
+          .setColor(0xFF0000)
+          .setAuthor("Race created by " +  msg.author.username,  msg.author.displayAvatarURL)
+          .setFooter("Race powered by Race Bot", client.user.displayAvatarURL)
+          .setTimestamp(new Date);
+        let options = msg.content.substring(6).split('--');
+        options.forEach(option => {
+          console.log(option);
+          switch(option.split(' ')[0]) {
+            case 'type':
+              embed.addField("Race type:", trimOptions(option), true);
+            break;
+            case 'date':
+              embed.addField("Date:", trimOptions(option), true);
+            break;
+            case 'time':
+              embed.addField("Time:", trimOptions(option), true);
+            break;
+            case 'rules':
+              embed.addField("Rules:", trimOptions(option), true);
+            break;
+            case 'icon':
+              embed.setThumbnail(option.substring(5));
+            break;
+            case 'img':
+              embed.setImage(option.substring(4));
+            break;
           }
+        });
+        embed.addField("Runners", '\u200B')
+          .addBlankField()
+          .addField("React to join the race.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+        try {
+          client.channels.get(getEventChannelId(msg)).send(embed)
+            .then(message => addCollector(message))
+            .catch(console.error);
+        } catch (e) {
+          msg.reply(e);
+        }
         break;
-        case 'help':
-          msg.reply(new RichEmbed()
-            .setColor(0x00FF00)
-            .setTitle("Start the command with !race followed by following options:")
-            .addField("--type text", "Creates \"Race type:\" field with text")
-            .addField("--date text", "Creates \"Date:\" field with text")
-            .addField("--time text", "Creates \"Time:\" field with text")
-            .addField("--rules text", "Creates \"Rules:\" field with text")
-            .addField("--icon url", "Adds corner image")
-            .addField("--img url", "Adds central image")
-            .addBlankField()
-            .addField("Delete", "To delete the race creator has to react with ❌"))
-              .then(message => {
-                message.delete(60000);
-                }
-              );
-          msg.delete();
+      case 'help':
+        msg.reply(new RichEmbed()
+          .setColor(0x00FF00)
+          .setTitle("Start the command with !race followed by following options:")
+          .addField("--type text", "Creates \"Race type:\" field with text")
+          .addField("--date text", "Creates \"Date:\" field with text")
+          .addField("--time text", "Creates \"Time:\" field with text")
+          .addField("--rules text", "Creates \"Rules:\" field with text")
+          .addField("--icon url", "Adds corner image")
+          .addField("--img url", "Adds central image")
+          .addBlankField()
+          .addField("Delete", "To delete the race creator has to react with ❌"))
+            .then(message => {
+              message.delete(60000);
+              }
+            );
+        msg.delete();
         break;
-      }
     }
   }
+  // removing it from cache, we have no use for these
+  msg.channel.messages.delete(msg.id);
 });
 
 function isAllowedToHostRace(msg){
@@ -153,7 +164,7 @@ function updateRunners(message) {
     using description with 2048 chars (2048 - "**Runners:** )/22 = 92
   */
   let embed = new Discord.RichEmbed(message.embeds[0]);
-  Promise.all(message.reactions.map(reaction => reaction.fetchUsers()/* 100 max fethced at once */)).then(usersCollectionsArray => {
+  Promise.all(message.reactions.map(reaction => reaction.fetchUsers(reaction.count))).then(usersCollectionsArray => {
     const users = usersCollectionsArray.reduce( (accCol, curCol) => accCol.concat(curCol), new Discord.Collection());
     Promise.all(users.map(user => message.guild.fetchMember(user.id))).then(members => {
       if (isRoleRequiered(message.guild.id)){
