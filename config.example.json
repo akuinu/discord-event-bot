@@ -1,0 +1,10 @@
+{
+  "discord_token": "discord bot token for connection",
+  "servers": {
+    "serverID": {
+      "eventChannel": "channelID",
+      "infoChannel": "channelID",
+      "role": "roldID"
+    }
+  }
+}
