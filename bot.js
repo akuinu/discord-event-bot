@@ -52,7 +52,8 @@ client.on('message', msg => {
         let options = msg.content.substring(6).split('--');
         options.forEach(option => {
           console.log(option);
-          switch(option.split(' ')[0]) {
+          const args = option.split(' ');
+          switch(args.shift()) {
             case 'type':
               embed.addField("Race type:", trimOptions(option), true);
             break;
@@ -66,10 +67,14 @@ client.on('message', msg => {
               embed.addField("Rules:", trimOptions(option), true);
             break;
             case 'icon':
-              embed.setThumbnail(option.substring(5));
+              embed.setThumbnail(args.shift());
             break;
             case 'img':
-              embed.setImage(option.substring(4));
+              embed.setImage(args.shift());
+            break;
+            case 'color':
+            case 'colour': // fall through
+              embed.setColor(args.shift());
             break;
           }
         });
@@ -92,6 +97,7 @@ client.on('message', msg => {
           .addField("--date text", "Creates \"Date:\" field with text")
           .addField("--time text", "Creates \"Time:\" field with text")
           .addField("--rules text", "Creates \"Rules:\" field with text")
+          .addField("--colour text", "Set colour one the side with HEX string (\"0xFF0000\" - red by default)")
           .addField("--icon url", "Adds corner image")
           .addField("--img url", "Adds central image")
           .addBlankField()
@@ -179,8 +185,8 @@ function updateRunners(message) {
   }).catch(console.error);
 }
 
-function trimOptions(str){
-  return str.substring(5).trim().replace("\\n","\n")
+function trimOptions(str, n = 5){
+  return str.substring(n).trim().replace("\\n","\n")
 }
 
 function getRaceCreator(message){
