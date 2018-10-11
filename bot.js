@@ -30,7 +30,7 @@ client.on('ready', () => {
 });
 
 client.on('messageReactionRemove', (reaction, user) => {
-    if(!(reaction.emoji.name === '❌' && user.id == getRaceCreator(reaction.message))) {
+    if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝') && user.id == getRaceCreator(reaction.message))) {
       updateRunners(reaction.message);
     }
 });
@@ -44,40 +44,14 @@ client.on('message', msg => {
     */
     switch(msg.content.substring(1).split(' ')[0]) {
       case 'race':
-        const embed = new RichEmbed()
+        let embed = new RichEmbed()
           .setColor(0xFF0000)
           .setAuthor("Race created by " +  msg.author.username,  msg.author.displayAvatarURL)
           .setFooter("Race powered by Race Bot", client.user.displayAvatarURL)
           .setTimestamp(new Date);
-        let options = msg.content.substring(6).split('--');
-        options.forEach(option => {
-          console.log(option);
-          const args = option.split(' ');
-          switch(args.shift()) {
-            case 'type':
-              embed.addField("Race type:", trimOptions(option), true);
-            break;
-            case 'date':
-              embed.addField("Date:", trimOptions(option), true);
-            break;
-            case 'time':
-              embed.addField("Time:", trimOptions(option), true);
-            break;
-            case 'rules':
-              embed.addField("Rules:", trimOptions(option), true);
-            break;
-            case 'icon':
-              embed.setThumbnail(args.shift());
-            break;
-            case 'img':
-              embed.setImage(args.shift());
-            break;
-            case 'color':
-            case 'colour': // fall through
-              embed.setColor(args.shift());
-            break;
-          }
-        });
+
+        embed = createFields(embed, msg.content.substring(6));
+
         embed.addField("Runners", '\u200B')
           .addBlankField()
           .addField("React to join the race.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
@@ -90,6 +64,7 @@ client.on('message', msg => {
         }
         break;
       case 'help':
+      case 'info':
         msg.reply(new RichEmbed()
           .setColor(0x00FF00)
           .setTitle("Start the command with !race followed by following options:")
@@ -101,7 +76,8 @@ client.on('message', msg => {
           .addField("--icon url", "Adds corner image")
           .addField("--img url", "Adds central image")
           .addBlankField()
-          .addField("Delete", "To delete the race creator has to react with ❌"))
+          .addField("Add Info", "To add another field react race message with 📝\n Then enter command, for example: `--seed 31337`")
+          .addField("Delete", "To delete the race creator has to react race message with ❌"))
             .then(message => {
               message.delete(60000);
               }
@@ -113,6 +89,42 @@ client.on('message', msg => {
   // removing it from cache, we have no use for these
   msg.channel.messages.delete(msg.id);
 });
+
+function createFields(embed, command) {
+  const options = command.split('--');
+  options.forEach(option => {
+    console.log(option);
+    const args = option.split(' ');
+    switch(args.shift()) {
+      case 'type':
+        embed.addField("Race type:", trimOptions(option), true);
+      break;
+      case 'date':
+        embed.addField("Date:", trimOptions(option), true);
+      break;
+      case 'time':
+        embed.addField("Time:", trimOptions(option), true);
+      break;
+      case 'rules':
+        embed.addField("Rules:", trimOptions(option, 6), true);
+      break;
+      case 'seed':
+        embed.addField("Seed:", trimOptions(option), true);
+      break;
+      case 'icon':
+        embed.setThumbnail(args.shift());
+      break;
+      case 'img':
+        embed.setImage(args.shift());
+      break;
+      case 'color':
+      case 'colour': // fall through
+        embed.setColor(args.shift());
+      break;
+    }
+  });
+  return embed;
+}
 
 function isAllowedToHostRace(msg){
   // maybe had other restrictions like not have more than X races active or something
@@ -153,12 +165,26 @@ function getEventChannelId(msg){
   }
 }
 
+function getInfoChannelId(msg){
+  if (config.servers.hasOwnProperty(msg.guild.id)) {
+    if (config.servers[msg.guild.id].hasOwnProperty("infoChannel")) {
+      return config.servers[msg.guild.id].infoChannel;
+    }else {
+      throw "No info channel set up, something wrong with config!";
+    }
+  } else {
+    // we should never get here
+    throw "Something wrong with channel config";
+  }
+}
+
 function oldMessageCheck(message){
   let embed = new Discord.RichEmbed(message.embeds[0]);
-  if (Object.keys(embed.fields).length === 2) {
+  if (Object.keys(embed.fields).length <= 2) {
     message.delete();
   } else {
     checkIfDeleateRequested(message);
+    removeEditRequested(message);
     addCollector(message);
     updateRunners(message);
   }
@@ -169,7 +195,7 @@ function updateRunners(message) {
     max of 46 runners = field 1024 chars, one user marker "<@Snowflake> " 22 chars
     using description with 2048 chars (2048 - "**Runners:** )/22 = 92
   */
-  let embed = new Discord.RichEmbed(message.embeds[0]);
+  const embed = new Discord.RichEmbed(message.embeds[0]);
   Promise.all(message.reactions.map(reaction => reaction.fetchUsers(reaction.count))).then(usersCollectionsArray => {
     const users = usersCollectionsArray.reduce( (accCol, curCol) => accCol.concat(curCol), new Discord.Collection());
     Promise.all(users.map(user => message.guild.fetchMember(user.id))).then(members => {
@@ -183,6 +209,14 @@ function updateRunners(message) {
       }
     }).catch(console.error);
   }).catch(console.error);
+}
+
+function addAttitionalFields(message, text) {
+  let embed = new Discord.RichEmbed(message.embeds[0]);
+  const tempFields = embed.fields.splice(Object.keys(embed.fields).length-3,3);
+  embed = createFields(embed, text);
+  embed.fields = embed.fields.concat(tempFields);
+  message.edit("", embed);
 }
 
 function trimOptions(str, n = 5){
@@ -203,6 +237,19 @@ function checkIfDeleateRequested(message){
       const reducer = (user, bool) => bool || user.id == creatorID;
       if(users.reduce(reducer, false)){
         sendDeletionPrompt(message, creatorID);
+        message.reactions.get('❌').remove(creatorID);
+      }
+    }).catch(console.error);
+  }
+}
+
+function removeEditRequested(message){
+  if (message.reactions.has('📝')) {
+    message.reactions.get('📝').fetchUsers().then( users =>{
+      const creatorID = getRaceCreator(message);
+      const reducer = (user, bool) => bool || user.id == creatorID;
+      if(users.reduce(reducer, false)){
+        message.reactions.get('📝').remove(creatorID);
       }
     }).catch(console.error);
   }
@@ -241,11 +288,34 @@ function sendDeletionPrompt(message, creatorID){
 
 function addCollector(message){
   const filter = (reaction, user) =>{
-    if (reaction.emoji.name === '❌' && user.id == getRaceCreator(message)) {
-      sendDeletionPrompt(reaction.message, user.id);
-      reaction.remove(user.id);
-      return false;
-    } // maybe have roll check
+    if (user.id == getRaceCreator(message)) {
+      switch (reaction.emoji.name) {
+        case '📝':
+          try {
+            const infoChannel = client.channels.get(getInfoChannelId(message));
+            infoChannel.send(`${user} Please enter edits, no prefix needed:`).then(() => {
+              const filter = m => user.id === m.author.id;
+              infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
+                .then(m => {
+                  addAttitionalFields(message, m.first().content);
+                })
+                .catch(() => {
+                  infoChannel.send('Edit window is over.');
+                });
+              });
+          } catch (e) {
+            message.channel.send(e).then(m => m.delete(60000));
+          }
+          reaction.remove(user.id);
+          return false;
+          break;
+        case '❌':
+          sendDeletionPrompt(reaction.message, user.id);
+          reaction.remove(user.id);
+          return false;
+          break;
+      }
+    } //
     return true;
   }
   const collector = message.createReactionCollector(filter);
