@@ -30,7 +30,7 @@ client.on('ready', () => {
 });
 
 client.on('messageReactionRemove', (reaction, user) => {
-    if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝') && user.id == getRaceCreator(reaction.message))) {
+    if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝' || reaction.emoji.name === '\u2702') && user.id == getRaceCreator(reaction.message))) {
       updateRunners(reaction.message);
     }
 });
@@ -77,6 +77,7 @@ client.on('message', msg => {
           .addField("--img url", "Adds central image")
           .addBlankField()
           .addField("Add Info", "To add another field react race message with 📝\n Then enter command, for example: `--seed 31337`")
+          .addField("Remove Field", "To remove field react race message with \u2702 \n Then enter number, for example: `1, 3`")
           .addField("Delete", "To delete the race creator has to react race message with ❌"))
             .then(message => {
               message.delete(60000);
@@ -93,7 +94,6 @@ client.on('message', msg => {
 function createFields(embed, command) {
   const options = command.split('--');
   options.forEach(option => {
-    console.log(option);
     const args = option.split(' ');
     switch(args.shift()) {
       case 'type':
@@ -180,7 +180,7 @@ function getInfoChannelId(msg){
 
 function oldMessageCheck(message){
   let embed = new Discord.RichEmbed(message.embeds[0]);
-  if (Object.keys(embed.fields).length <= 2) {
+  if (embed.fields.length <= 2) {
     message.delete();
   } else {
     checkIfDeleateRequested(message);
@@ -203,8 +203,8 @@ function updateRunners(message) {
         members = members.filter(member => member.roles.has(config.servers[message.guild.id].role));
       }
       const runners = members.reduce((accStr, curStr) => accStr + curStr + " ", "\u200B");
-      if (embed.fields[Object.keys(embed.fields).length-3].value !== runners) {
-        embed.fields[Object.keys(embed.fields).length-3].value = runners;
+      if (embed.fields[embed.fields.length-3].value !== runners) {
+        embed.fields[embed.fields.length-3].value = runners;
         message.edit("", embed);
       }
     }).catch(console.error);
@@ -212,11 +212,25 @@ function updateRunners(message) {
 }
 
 function addAttitionalFields(message, text) {
-  let embed = new Discord.RichEmbed(message.embeds[0]);
-  const tempFields = embed.fields.splice(Object.keys(embed.fields).length-3,3);
-  embed = createFields(embed, text);
-  embed.fields = embed.fields.concat(tempFields);
+  const embed = new Discord.RichEmbed(message.embeds[0]);
+  const tempEmbed = createFields(new Discord.RichEmbed(), text);
+  while (tempEmbed.fields.length > 0) {
+    embed.fields.splice(embed.fields.length-3, 0,  tempEmbed.fields.shift());
+  }
   message.edit("", embed);
+}
+
+function removeFields(message, text) {
+  const embed = new Discord.RichEmbed(message.embeds[0]);
+  let remouvals = text.split(/,?\s+/).map(function(item) {return parseInt(item, 10) - 1;});
+  remouvals = [...new Set(remouvals)];
+  remouvals.sort((a, b) => a - b);
+  if (remouvals[0] >= 0 && remouvals[remouvals.length-1] <  embed.fields.length - 3) {
+    for (var i = 0; i < remouvals.length; i++) {
+      embed.fields.splice(remouvals[i]-i, 1);
+    }
+    message.edit("", embed);
+  }
 }
 
 function trimOptions(str, n = 5){
@@ -225,7 +239,7 @@ function trimOptions(str, n = 5){
 
 function getRaceCreator(message){
   const embed = new Discord.RichEmbed(message.embeds[0]);
-  const parts = embed.fields[--Object.keys(embed.fields).length].value.split(' ');
+  const parts = embed.fields[embed.fields.length-1].value.split(' ');
   const userTag = parts[parts.length -1];
   return userTag.substring(2,userTag.length -1);
 }
@@ -303,6 +317,35 @@ function addCollector(message){
                   infoChannel.send('Edit window is over.');
                 });
               });
+          } catch (e) {
+            message.channel.send(e).then(m => m.delete(60000));
+          }
+          reaction.remove(user.id);
+          return false;
+          break;
+        case '\u2702': //✂
+          try {
+            const infoChannel = client.channels.get(getInfoChannelId(message));
+            if (embed.fields.length -3 > 0) {
+              const embed = new Discord.RichEmbed(message.embeds[0]);
+              for (var i = 0; i < embed.fields.length -3; i++) {
+                fields += `${i + 1} - ${embed.fields[i].name} \n`;
+              }
+              infoChannel.send(`${user} Please enter numbers what fields you want to remove \n ${fields}`).then(() => {
+                const filter = m => user.id === m.author.id;
+                infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
+                  .then(m => {
+                    removeFields(message, m.first().content);
+                  })
+                  .catch((e) => {
+                    console.log(e);
+                    infoChannel.send('Edit window is over.');
+                  });
+                });
+            } else {
+              infoChannel.send(`${user} no field to remove`);
+            }
+
           } catch (e) {
             message.channel.send(e).then(m => m.delete(60000));
           }
