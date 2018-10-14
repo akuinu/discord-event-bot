@@ -30,31 +30,32 @@ client.on('ready', () => {
 });
 
 client.on('messageReactionRemove', (reaction, user) => {
-    if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝' || reaction.emoji.name === '\u2702') && user.id == getRaceCreator(reaction.message))) {
-      updateRunners(reaction.message);
+    if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝' || reaction.emoji.name === '\u2702') && user.id == getEventCreator(reaction.message))) {
+      updateParticipants(reaction.message);
     }
 });
 
 client.on('message', msg => {
-  if (msg.content.startsWith("!") && isAllowedToHostRace(msg) && inWatchlist(msg)) {
+  if (msg.content.startsWith("!") && isAllowedToHostEvent(msg) && inWatchlist(msg)) {
     /*
       // no command uses !command arg1 arg2 ... format
       let args = msg.content.substring(1).split(' ');
       var cmd = args.shift();
     */
     switch(msg.content.substring(1).split(' ')[0]) {
-      case 'race':
+      case 'race': // TODO: add diffrent keyword support: event race raid ejc
+        const eventConfig = getEventConfig(msg.guild.id);
         let embed = new RichEmbed()
           .setColor(0xFF0000)
-          .setAuthor("Race created by " +  msg.author.username,  msg.author.displayAvatarURL)
-          .setFooter("Race powered by Race Bot", client.user.displayAvatarURL)
+          .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL)
+          .setFooter(eventConfig.footer, client.user.displayAvatarURL)
           .setTimestamp(new Date);
 
         embed = createFields(embed, msg.content.substring(6));
 
-        embed.addField("Runners", '\u200B')
+        embed.addField(eventConfig.participants, '\u200B')
           .addBlankField()
-          .addField("React to join the race.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+          .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
         try {
           client.channels.get(getEventChannelId(msg)).send(embed)
             .then(message => addCollector(message))
@@ -126,7 +127,7 @@ function createFields(embed, command) {
   return embed;
 }
 
-function isAllowedToHostRace(msg){
+function isAllowedToHostEvent(msg){
   // maybe had other restrictions like not have more than X races active or something
   return hasRightRoll(msg);
 }
@@ -178,6 +179,17 @@ function getInfoChannelId(msg){
   }
 }
 
+function getEventConfig(guildID){
+  if (config.servers.hasOwnProperty(guildID)) {
+    if (config.servers[guildID].hasOwnProperty("type")) {
+      if (config.types.hasOwnProperty(config.servers[guildID].type)) {
+        return config.types[config.servers[guildID].type];
+      }
+    }
+  }
+  return config.types.default;
+}
+
 function oldMessageCheck(message){
   let embed = new Discord.RichEmbed(message.embeds[0]);
   if (embed.fields.length <= 2) {
@@ -186,11 +198,11 @@ function oldMessageCheck(message){
     checkIfDeleateRequested(message);
     removeEditRequested(message);
     addCollector(message);
-    updateRunners(message);
+    updateParticipants(message);
   }
 }
 
-function updateRunners(message) {
+function updateParticipants(message) {
   /*
     max of 46 runners = field 1024 chars, one user marker "<@Snowflake> " 22 chars
     using description with 2048 chars (2048 - "**Runners:** )/22 = 92
@@ -202,9 +214,9 @@ function updateRunners(message) {
       if (isRoleRequiered(message.guild.id)){
         members = members.filter(member => member.roles.has(config.servers[message.guild.id].role));
       }
-      const runners = members.reduce((accStr, curStr) => accStr + curStr + " ", "\u200B");
-      if (embed.fields[embed.fields.length-3].value !== runners) {
-        embed.fields[embed.fields.length-3].value = runners;
+      const participants = members.reduce((accStr, curStr) => accStr + curStr + " ", "\u200B");
+      if (embed.fields[embed.fields.length-3].value !== participants) {
+        embed.fields[embed.fields.length-3].value = participants;
         message.edit("", embed);
       }
     }).catch(console.error);
@@ -237,7 +249,7 @@ function trimOptions(str, n = 5){
   return str.substring(n).trim().replace("\\n","\n")
 }
 
-function getRaceCreator(message){
+function getEventCreator(message){
   const embed = new Discord.RichEmbed(message.embeds[0]);
   const parts = embed.fields[embed.fields.length-1].value.split(' ');
   const userTag = parts[parts.length -1];
@@ -247,7 +259,7 @@ function getRaceCreator(message){
 function checkIfDeleateRequested(message){
   if (message.reactions.has('❌')) { // \u274C
     message.reactions.get('❌').fetchUsers().then( users =>{
-      const creatorID = getRaceCreator(message);
+      const creatorID = getEventCreator(message);
       const reducer = (user, bool) => bool || user.id == creatorID;
       if(users.reduce(reducer, false)){
         sendDeletionPrompt(message, creatorID);
@@ -260,7 +272,7 @@ function checkIfDeleateRequested(message){
 function removeEditRequested(message){
   if (message.reactions.has('📝')) {
     message.reactions.get('📝').fetchUsers().then( users =>{
-      const creatorID = getRaceCreator(message);
+      const creatorID = getEventCreator(message);
       const reducer = (user, bool) => bool || user.id == creatorID;
       if(users.reduce(reducer, false)){
         message.reactions.get('📝').remove(creatorID);
@@ -288,7 +300,7 @@ function sendDeletionPrompt(message, creatorID){
               new Discord.RichEmbed(promptMessage.embeds[0])  // get embeded text
               .fields[0].value  // first field stores race url field
               .split("/")[6]) // last/7th element in url is message ID
-              .then(raceMessage => raceMessage.delete()).catch(console.error); // deleteing the race message
+              .then(eventMessage => eventMessage.delete()).catch(console.error); // deleteing the race message
             promptMessage.delete();
           } else {
             promptMessage.delete();
@@ -302,7 +314,7 @@ function sendDeletionPrompt(message, creatorID){
 
 function addCollector(message){
   const filter = (reaction, user) =>{
-    if (user.id == getRaceCreator(message)) {
+    if (user.id == getEventCreator(message)) {
       switch (reaction.emoji.name) {
         case '📝':
           try {
@@ -363,7 +375,7 @@ function addCollector(message){
   }
   const collector = message.createReactionCollector(filter);
   collector.on('collect', reaction => {
-    updateRunners(reaction.message);
+    updateParticipants(reaction.message);
     });
   //collector.on('remove', (reaction, user) => editEventParticipants(reaction)); not a thing in curret API
 }
