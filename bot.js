@@ -6,7 +6,7 @@ const { Client, RichEmbed } = require('discord.js');
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-  // starting up - checks all event channel for race event messages
+  // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (config.servers.hasOwnProperty(guild.id)) {
       if(config.servers[guild.id].hasOwnProperty("eventChannel")){
@@ -43,7 +43,10 @@ client.on('message', msg => {
       var cmd = args.shift();
     */
     switch(msg.content.substring(1).split(' ')[0]) {
-      case 'race': // TODO: add diffrent keyword support: event race raid ejc
+      // TODO: add proper keyword support
+      case 'event':
+      case 'race':
+      case 'raid':
         const eventConfig = getEventConfig(msg.guild.id);
         const embed = new RichEmbed()
           .setColor(0xFF0000)
@@ -67,8 +70,8 @@ client.on('message', msg => {
       case 'info':
         msg.reply(new RichEmbed()
           .setColor(0x00FF00)
-          .setTitle("Start the command with !race followed by following options:")
-          .addField("--type text", "Creates \"Race type:\" field with text")
+          .setTitle("Start the command with !event followed by following options:")
+          .addField("--type text", "Creates \"Event type:\" field with text")
           .addField("--date text", "Creates \"Date:\" field with text")
           .addField("--time text", "Creates \"Time:\" field with text")
           .addField("--rules text", "Creates \"Rules:\" field with text")
@@ -76,9 +79,9 @@ client.on('message', msg => {
           .addField("--icon url", "Adds corner image")
           .addField("--img url", "Adds central image")
           .addBlankField()
-          .addField("Add Info", "To add another field react race message with 📝\n Then enter command, for example: `--seed 31337`")
-          .addField("Remove Field", "To remove field react race message with \u2702 \n Then enter number, for example: `1, 3`")
-          .addField("Delete", "To delete the race creator has to react race message with ❌"))
+          .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
+          .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
+          .addField("Delete", "To delete the event creator has to react event message with ❌"))
             .then(message => {
               message.delete(60000);
               }
@@ -111,6 +114,9 @@ RichEmbed.prototype.createFields = function(command) {
       case 'seed':
         this.addField("Seed:", trimOptions(option), true);
       break;
+      case 'location':
+        this.addField("Location:", trimOptions(option, 10), true);
+      break;
       case 'icon':
         this.setThumbnail(args.shift());
       break;
@@ -126,7 +132,7 @@ RichEmbed.prototype.createFields = function(command) {
 };
 
 function isAllowedToHostEvent(msg){
-  // maybe had other restrictions like not have more than X races active or something
+  // maybe had other restrictions like not have more than X events active or something
   return hasRightRoll(msg);
 }
 
@@ -283,8 +289,8 @@ function removeEditRequested(message){
 function sendDeletionPrompt(message, creatorID){
   message.channel.send("<@"+creatorID+">", new RichEmbed()
     .setColor(0xFFFF00)
-    .setTitle("Do you want to delete race event?")
-    .addField("Race event:", message.url)
+    .setTitle("Do you want to delete event?")
+    .addField("Link to event:", message.url)
     .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle"))
     .then(promptMessage => {
       promptMessage.react('👍').then(() => promptMessage.react('👎'));
@@ -295,11 +301,11 @@ function sendDeletionPrompt(message, creatorID){
         .then(collected => {
           const reaction = collected.first();
           if (reaction.emoji.name === '👍') {
-            promptMessage.channel.fetchMessage( // featch race message by id
+            promptMessage.channel.fetchMessage( // featch message by id
               new Discord.RichEmbed(promptMessage.embeds[0])  // get embeded text
-              .fields[0].value  // first field stores race url field
+              .fields[0].value  // first field stores url field
               .split("/")[6]) // last/7th element in url is message ID
-              .then(eventMessage => eventMessage.delete()).catch(console.error); // deleteing the race message
+              .then(eventMessage => eventMessage.delete()).catch(console.error); // deleteing the event message
             promptMessage.delete();
           } else {
             promptMessage.delete();
@@ -318,7 +324,7 @@ function addCollector(message){
         case '📝':
           try {
             const infoChannel = client.channels.get(getInfoChannelId(message));
-            infoChannel.send(`${user} Please enter edits, no prefix needed:`).then(() => {
+            infoChannel.send(`${user} Please enter edits, no prefix needed\n for example: \`--seed 31337\``).then(() => {
               const filter = m => user.id === m.author.id;
               infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
                 .then(m => {

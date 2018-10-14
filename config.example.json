@@ -11,17 +11,17 @@
   "types": {
     "default": {
       "authorField": "Race created by ",
-      "footer": "Race powered by Race Bot",
+      "footer": "Race powered by Event Bot",
       "participants": "Runners:"
     },
     "race": {
       "authorField": "Race created by ",
-      "footer": "Race powered by Race Bot",
+      "footer": "Race powered by Event Bot",
       "participants": "Runners:"
     },
     "event": {
       "authorField": "Event held by ",
-      "footer": "Event powered by Race Bot",
+      "footer": "Event powered by Event Bot",
       "participants": "Participants:"
     }
   }
