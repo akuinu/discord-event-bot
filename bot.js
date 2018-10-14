@@ -30,9 +30,17 @@ client.on('ready', () => {
 });
 
 client.on('messageReactionRemove', (reaction, user) => {
-    if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝' || reaction.emoji.name === '\u2702') && user.id == getEventCreator(reaction.message))) {
-      updateParticipants(reaction.message);
+  if (config.servers.hasOwnProperty(reaction.message.guild.id)) {
+    if(config.servers[reaction.message.guild.id].hasOwnProperty("eventChannel")){
+      if (config.servers[reaction.message.guild.id].eventChannel == reaction.message.channel.id) {
+        if (new Discord.RichEmbed(reaction.message.embeds[0]).fields.length > 2) {
+          if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝' || reaction.emoji.name === '\u2702') && user.id == getEventCreator(reaction.message))) {
+            updateParticipants(reaction.message);
+          }
+        }
+      }
     }
+  }
 });
 
 client.on('message', msg => {
@@ -47,52 +55,60 @@ client.on('message', msg => {
       case 'event':
       case 'race':
       case 'raid':
-        const eventConfig = getEventConfig(msg.guild.id);
-        const embed = new RichEmbed()
-          .setColor(0xFF0000)
-          .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL)
-          .setFooter(eventConfig.footer, client.user.displayAvatarURL)
-          .setTimestamp(new Date);
-
-        embed.createFields(msg.content.substring(6));
-        embed.addField(eventConfig.participants, '\u200B')
-          .addBlankField()
-          .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
-        try {
-          client.channels.get(getEventChannelId(msg)).send(embed)
-            .then(message => addCollector(message))
-            .catch(console.error);
-        } catch (e) {
-          msg.reply(e);
-        }
+        createEvent(msg);
         break;
       case 'help':
       case 'info':
-        msg.reply(new RichEmbed()
-          .setColor(0x00FF00)
-          .setTitle("Start the command with !event followed by following options:")
-          .addField("--type text", "Creates \"Event type:\" field with text")
-          .addField("--date text", "Creates \"Date:\" field with text")
-          .addField("--time text", "Creates \"Time:\" field with text")
-          .addField("--rules text", "Creates \"Rules:\" field with text")
-          .addField("--colour text", "Set colour one the side with HEX string (\"0xFF0000\" - red by default)")
-          .addField("--icon url", "Adds corner image")
-          .addField("--img url", "Adds central image")
-          .addBlankField()
-          .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
-          .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
-          .addField("Delete", "To delete the event creator has to react event message with ❌"))
-            .then(message => {
-              message.delete(60000);
-              }
-            );
-        msg.delete();
+        sendHelp(msg);
         break;
     }
   }
   // removing it from cache, we have no use for these
   msg.channel.messages.delete(msg.id);
 });
+
+function createEvent(msg) {
+  const eventConfig = getEventConfig(msg.guild.id);
+  const embed = new RichEmbed()
+    .setColor(0xFF0000)
+    .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL)
+    .setFooter(eventConfig.footer, client.user.displayAvatarURL)
+    .setTimestamp(new Date);
+
+  embed.createFields(msg.content.substring(6));
+  embed.addField(eventConfig.participants, '\u200B')
+    .addBlankField()
+    .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+  try {
+    client.channels.get(getEventChannelId(msg)).send(embed)
+      .then(message => addCollector(message))
+      .catch(console.error);
+  } catch (e) {
+    msg.reply(e);
+  }
+}
+
+function sendHelp(msg) {
+  msg.reply(new RichEmbed()
+    .setColor(0x00FF00)
+    .setTitle("Start the command with !event followed by following options:")
+    .addField("--type text", "Creates \"Event type:\" field with text")
+    .addField("--date text", "Creates \"Date:\" field with text")
+    .addField("--time text", "Creates \"Time:\" field with text")
+    .addField("--rules text", "Creates \"Rules:\" field with text")
+    .addField("--colour text", "Set colour one the side with HEX string (\"0xFF0000\" - red by default)")
+    .addField("--icon url", "Adds corner image")
+    .addField("--img url", "Adds central image")
+    .addBlankField()
+    .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
+    .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
+    .addField("Delete", "To delete the event creator has to react event message with ❌"))
+      .then(message => {
+        message.delete(60000);
+        }
+      );
+  msg.delete();
+}
 
 RichEmbed.prototype.createFields = function(command) {
   const options = command.split('--');
@@ -109,13 +125,13 @@ RichEmbed.prototype.createFields = function(command) {
         this.addField("Time:", trimOptions(option), true);
       break;
       case 'rules':
-        this.addField("Rules:", trimOptions(option, 6), true);
+        this.addField("Rules:", trimOptions(option), true);
       break;
       case 'seed':
         this.addField("Seed:", trimOptions(option), true);
       break;
       case 'location':
-        this.addField("Location:", trimOptions(option, 10), true);
+        this.addField("Location:", trimOptions(option), true);
       break;
       case 'icon':
         this.setThumbnail(args.shift());
@@ -200,7 +216,8 @@ function oldMessageCheck(message){
     message.delete();
   } else {
     checkIfDeleateRequested(message);
-    removeEditRequested(message);
+    removeEditRequested(message, '📝');
+    removeEditRequested(message, '\u2702');
     addCollector(message);
     updateParticipants(message);
   }
@@ -250,7 +267,8 @@ function removeFields(message, text) {
   }
 }
 
-function trimOptions(str, n = 5){
+function trimOptions(str){
+  const n = str.split(" ")[0].length;
   return str.substring(n).trim().replace("\\n","\n")
 }
 
@@ -274,13 +292,13 @@ function checkIfDeleateRequested(message){
   }
 }
 
-function removeEditRequested(message){
-  if (message.reactions.has('📝')) {
-    message.reactions.get('📝').fetchUsers().then( users =>{
+function removeEditRequested(message, emoji){
+  if (message.reactions.has(emoji)) {
+    message.reactions.get(emoji).fetchUsers().then( users =>{
       const creatorID = getEventCreator(message);
       const reducer = (user, bool) => bool || user.id == creatorID;
       if(users.reduce(reducer, false)){
-        message.reactions.get('📝').remove(creatorID);
+        message.reactions.get(emoji).remove(creatorID);
       }
     }).catch(console.error);
   }
