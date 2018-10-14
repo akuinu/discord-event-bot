@@ -45,14 +45,13 @@ client.on('message', msg => {
     switch(msg.content.substring(1).split(' ')[0]) {
       case 'race': // TODO: add diffrent keyword support: event race raid ejc
         const eventConfig = getEventConfig(msg.guild.id);
-        let embed = new RichEmbed()
+        const embed = new RichEmbed()
           .setColor(0xFF0000)
           .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL)
           .setFooter(eventConfig.footer, client.user.displayAvatarURL)
           .setTimestamp(new Date);
 
-        embed = createFields(embed, msg.content.substring(6));
-
+        embed.createFields(msg.content.substring(6));
         embed.addField(eventConfig.participants, '\u200B')
           .addBlankField()
           .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
@@ -92,40 +91,39 @@ client.on('message', msg => {
   msg.channel.messages.delete(msg.id);
 });
 
-function createFields(embed, command) {
+RichEmbed.prototype.createFields = function(command) {
   const options = command.split('--');
   options.forEach(option => {
     const args = option.split(' ');
     switch(args.shift()) {
       case 'type':
-        embed.addField("Race type:", trimOptions(option), true);
+        this.addField("Race type:", trimOptions(option), true);
       break;
       case 'date':
-        embed.addField("Date:", trimOptions(option), true);
+        this.addField("Date:", trimOptions(option), true);
       break;
       case 'time':
-        embed.addField("Time:", trimOptions(option), true);
+        this.addField("Time:", trimOptions(option), true);
       break;
       case 'rules':
-        embed.addField("Rules:", trimOptions(option, 6), true);
+        this.addField("Rules:", trimOptions(option, 6), true);
       break;
       case 'seed':
-        embed.addField("Seed:", trimOptions(option), true);
+        this.addField("Seed:", trimOptions(option), true);
       break;
       case 'icon':
-        embed.setThumbnail(args.shift());
+        this.setThumbnail(args.shift());
       break;
       case 'img':
-        embed.setImage(args.shift());
+        this.setImage(args.shift());
       break;
       case 'color':
       case 'colour': // fall through
-        embed.setColor(args.shift());
+        this.setColor(args.shift());
       break;
     }
   });
-  return embed;
-}
+};
 
 function isAllowedToHostEvent(msg){
   // maybe had other restrictions like not have more than X races active or something
@@ -191,7 +189,7 @@ function getEventConfig(guildID){
 }
 
 function oldMessageCheck(message){
-  let embed = new Discord.RichEmbed(message.embeds[0]);
+  const embed = new Discord.RichEmbed(message.embeds[0]);
   if (embed.fields.length <= 2) {
     message.delete();
   } else {
@@ -225,9 +223,10 @@ function updateParticipants(message) {
 
 function addAttitionalFields(message, text) {
   const embed = new Discord.RichEmbed(message.embeds[0]);
-  const tempEmbed = createFields(new Discord.RichEmbed(), text);
-  while (tempEmbed.fields.length > 0) {
-    embed.fields.splice(embed.fields.length-3, 0,  tempEmbed.fields.shift());
+  const tempEmbedFields = embed.fields.splice(embed.fields.length-3, 3);
+  embed.createFields(text);
+  while (tempEmbedFields.length > 0) {
+    embed.fields.splice(embed.fields.length, 0,  tempEmbedFields.shift());
   }
   message.edit("", embed);
 }
@@ -325,7 +324,8 @@ function addCollector(message){
                 .then(m => {
                   addAttitionalFields(message, m.first().content);
                 })
-                .catch(() => {
+                .catch((e) => {
+                  console.log(e);
                   infoChannel.send('Edit window is over.');
                 });
               });
@@ -338,8 +338,9 @@ function addCollector(message){
         case '\u2702': //✂
           try {
             const infoChannel = client.channels.get(getInfoChannelId(message));
+            const embed = new Discord.RichEmbed(message.embeds[0]);
+            let fields = "";
             if (embed.fields.length -3 > 0) {
-              const embed = new Discord.RichEmbed(message.embeds[0]);
               for (var i = 0; i < embed.fields.length -3; i++) {
                 fields += `${i + 1} - ${embed.fields[i].name} \n`;
               }
@@ -359,7 +360,7 @@ function addCollector(message){
             }
 
           } catch (e) {
-            message.channel.send(e).then(m => m.delete(60000));
+            message.channel.send("error: " + e).then(m => m.delete(60000));
           }
           reaction.remove(user.id);
           return false;
