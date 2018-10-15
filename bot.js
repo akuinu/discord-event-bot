@@ -44,23 +44,25 @@ client.on('messageReactionRemove', (reaction, user) => {
 });
 
 client.on('message', msg => {
-  if (msg.content.startsWith("!") && isAllowedToHostEvent(msg) && inWatchlist(msg)) {
-    /*
+  if (!msg.guild){
+    if (msg.content.startsWith("!") && isAllowedToHostEvent(msg) && inWatchlist(msg)) {
+      /*
       // no command uses !command arg1 arg2 ... format
       let args = msg.content.substring(1).split(' ');
       var cmd = args.shift();
-    */
-    switch(msg.content.substring(1).split(' ')[0]) {
-      // TODO: add proper keyword support
-      case 'event':
-      case 'race':
-      case 'raid':
+      */
+      switch(msg.content.substring(1).split(' ')[0]) {
+        // TODO: add proper keyword support
+        case 'event':
+        case 'race':
+        case 'raid':
         createEvent(msg);
         break;
-      case 'help':
-      case 'info':
+        case 'help':
+        case 'info':
         sendHelp(msg);
         break;
+      }
     }
   }
   // removing it from cache, we have no use for these
@@ -102,6 +104,7 @@ function sendHelp(msg) {
     .addBlankField()
     .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
     .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
+    .addField("Starting clock", "To start a countdown - react event message with ⏱\n Then enter seconds, min 5, max 30 seconds")
     .addField("Delete", "To delete the event creator has to react event message with ❌"))
       .then(message => {
         message.delete(60000);
@@ -217,6 +220,7 @@ function oldMessageCheck(message){
   } else {
     checkIfDeleateRequested(message);
     removeEditRequested(message, '📝');
+    removeEditRequested(message, '⏱');
     removeEditRequested(message, '\u2702');
     addCollector(message);
     updateParticipants(message);
@@ -391,6 +395,46 @@ function addCollector(message){
           break;
         case '❌':
           sendDeletionPrompt(reaction.message, user.id);
+          reaction.remove(user.id);
+          return false;
+          break;
+        case '⏱':
+          try {
+            const infoChannel = client.channels.get(getInfoChannelId(message));
+            const embed = new Discord.RichEmbed(message.embeds[0]);
+
+            infoChannel.send(`${user} Please enter numbers of sceonds for countdown. \n  min 5, max 30 seconds`).then(() => {
+            const filter = m => user.id === m.author.id;
+            infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
+              .then(m => {
+                const t = parseInt(m.first().content.match(/\d+/), 10);
+                if (5 <= t && t <= 30 ) {
+                  infoChannel.send(`Countdown has started for ${t}seconds`);
+                  setTimeout(()=>infoChannel.send(`**START**`),t*1000);
+                  for (var i = 1; i < 5; i++) {
+                    setTimeout((time)=>{
+                      infoChannel.send(`Countdown: ${time}seconds`).then(ctm => ctm.delete(60000));
+                    }, (t-i)*1000,i);
+                  }
+                  if (Math.floor(t/5)>1) {
+                    for (var i = 1; i < Math.floor(t/5); i++) {
+                      setTimeout((time)=>{
+                        infoChannel.send(`Countdown: ${time}seconds`).then(ctm => ctm.delete(60000));
+                      }, (t-i*5)*1000,i*5);
+                    }
+                  }
+                } else {
+                  infoChannel.send("Value has to be btween 5 and 30 seconds.")
+                }
+              })
+              .catch((e) => {
+                console.log(e);
+                infoChannel.send('Too slow, better luck next time.');
+              });
+            });
+          } catch (e) {
+            message.channel.send("error: " + e).then(m => m.delete(60000));
+          }
           reaction.remove(user.id);
           return false;
           break;
