@@ -44,7 +44,7 @@ client.on('messageReactionRemove', (reaction, user) => {
 });
 
 client.on('message', msg => {
-  if (!msg.guild){
+  if (msg.guild){
     if (msg.content.startsWith("!") && isAllowedToHostEvent(msg) && inWatchlist(msg)) {
       /*
       // no command uses !command arg1 arg2 ... format
@@ -103,8 +103,9 @@ function sendHelp(msg) {
     .addField("--img url", "Adds central image")
     .addBlankField()
     .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
-    .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
+    .addField("Message participants", "To send and ping participants - react event message with 💌")
     .addField("Starting clock", "To start a countdown - react event message with ⏱\n Then enter seconds, min 5, max 30 seconds")
+    .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
     .addField("Delete", "To delete the event creator has to react event message with ❌"))
       .then(message => {
         message.delete(60000);
@@ -219,9 +220,7 @@ function oldMessageCheck(message){
     message.delete();
   } else {
     checkIfDeleateRequested(message);
-    removeEditRequested(message, '📝');
-    removeEditRequested(message, '⏱');
-    removeEditRequested(message, '\u2702');
+    ['📝','⏱','💌','📧','\u2702'].forEach(emote => removeCommandEmote(message, emote));
     addCollector(message);
     updateParticipants(message);
   }
@@ -296,7 +295,7 @@ function checkIfDeleateRequested(message){
   }
 }
 
-function removeEditRequested(message, emoji){
+function removeCommandEmote(message, emoji){
   if (message.reactions.has(emoji)) {
     message.reactions.get(emoji).fetchUsers().then( users =>{
       const creatorID = getEventCreator(message);
@@ -402,14 +401,14 @@ function addCollector(message){
           try {
             const infoChannel = client.channels.get(getInfoChannelId(message));
             const embed = new Discord.RichEmbed(message.embeds[0]);
-
-            infoChannel.send(`${user} Please enter numbers of sceonds for countdown. \n  min 5, max 30 seconds`).then(() => {
+            const participants = embed.fields[embed.fields.length-3].value
+            infoChannel.send(`${user} Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`).then(() => {
             const filter = m => user.id === m.author.id;
             infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
               .then(m => {
                 const t = parseInt(m.first().content.match(/\d+/), 10);
                 if (5 <= t && t <= 30 ) {
-                  infoChannel.send(`Countdown has started for ${t}seconds`);
+                  infoChannel.send(`${participants}\n Countdown has started for ${t}seconds`);
                   setTimeout(()=>infoChannel.send(`**START**`),t*1000);
                   for (var i = 1; i < 5; i++) {
                     setTimeout((time)=>{
@@ -430,6 +429,37 @@ function addCollector(message){
               .catch((e) => {
                 console.log(e);
                 infoChannel.send('Too slow, better luck next time.');
+              });
+            });
+          } catch (e) {
+            message.channel.send("error: " + e).then(m => m.delete(60000));
+          }
+          reaction.remove(user.id);
+          return false;
+          break;
+        case '💌':
+        case '📧':
+          try {
+            const infoChannel = client.channels.get(getInfoChannelId(message));
+            const embed = new Discord.RichEmbed(message.embeds[0]);
+            const participants = embed.fields[embed.fields.length-3].value
+            infoChannel.send(`${user} Please enter your message.`).then(promptMessage => {
+            const filter = m => user.id === m.author.id;
+            infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
+              .then(messages => {
+                const userMessage = messages.first();
+                const messageEmbed = new Discord.RichEmbed()
+                  .addField(`Message from ${user.username}`, participants)
+                  .addField("Message:", userMessage.content)
+                  .addField("Link to event:", message.url)
+                  .setColor(0x00FF00);
+                userMessage.delete();
+                promptMessage.delete();
+                infoChannel.send(messageEmbed);
+              })
+              .catch((e) => {
+                console.log(e);
+                infoChannel.send('Message send window over.');
               });
             });
           } catch (e) {
