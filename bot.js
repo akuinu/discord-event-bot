@@ -34,7 +34,7 @@ client.on('messageReactionRemove', (reaction, user) => {
     if(config.servers[reaction.message.guild.id].hasOwnProperty("eventChannel")){
       if (config.servers[reaction.message.guild.id].eventChannel == reaction.message.channel.id) {
         if (new Discord.RichEmbed(reaction.message.embeds[0]).fields.length > 2) {
-          if(!((reaction.emoji.name === '❌' || reaction.emoji.name === '📝' || reaction.emoji.name === '\u2702') && user.id == getEventCreator(reaction.message))) {
+          if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == getEventCreator(reaction.message))) {
             updateParticipants(reaction.message);
           }
         }
@@ -338,138 +338,130 @@ function sendDeletionPrompt(message, creatorID){
     }).catch(console.error);
 }
 
+function startCountdown(channel, time, tagged){
+  channel.send(`${tagged}\n Countdown has started for ${time}seconds`);
+  setTimeout(()=>channel.send(`**START**`),time*1000);
+  for (var i = 1; i < 5; i++) {
+    setTimeout((time)=>{
+      channel.send(`Countdown: ${time}seconds`).then(ctm => ctm.delete(60000));
+    }, (time-i)*1000,i);
+  }
+  if (Math.floor(time/5)>1) {
+    for (var i = 1; i < Math.floor(time/5); i++) {
+      setTimeout((timer)=>{
+        channel.send(`Countdown: ${timer}seconds`).then(ctm => ctm.delete(60000));
+      }, (time-i*5)*1000,i*5);
+    }
+  }
+}
+
+const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
+  return new Promise((resolve, reject) => {
+    infoChannel.send(`${user} ${requestSr}`).then( requestMessage =>{
+      const filter = m => user.id === m.author.id;
+      infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
+      .then(messages => {
+        const userMessage = messages.first();
+        const messageEmbed = new Discord.RichEmbed()
+          .addField("Recived your input of", userMessage.content)
+          .addField("Info requested:", requestSr)
+          .setTimestamp(new Date)
+          .setColor(0x00FF00);
+        userMessage.reply(messageEmbed).then(m => m.delete(60000));
+        requestMessage.delete();
+        userMessage.delete();
+        resolve(userMessage.content);
+      })
+      .catch((e) => {
+        console.log(e);
+        infoChannel.send("Edit window is over.");
+        reject(Error("Edit window is over."));
+      });
+    }).catch((e) => {
+      console.log(e);
+      reject(Error(`It broke: ${e}`));
+    });
+
+  });
+};
+
 function addCollector(message){
   const filter = (reaction, user) =>{
     if (user.id == getEventCreator(message)) {
-      switch (reaction.emoji.name) {
-        case '📝':
-          try {
-            const infoChannel = client.channels.get(getInfoChannelId(message));
-            infoChannel.send(`${user} Please enter edits, no prefix needed\n for example: \`--seed 31337\``).then(() => {
-              const filter = m => user.id === m.author.id;
-              infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
-                .then(m => {
-                  addAttitionalFields(message, m.first().content);
-                })
-                .catch((e) => {
-                  console.log(e);
-                  infoChannel.send('Edit window is over.');
-                });
-              });
-          } catch (e) {
-            message.channel.send(e).then(m => m.delete(60000));
-          }
-          reaction.remove(user.id);
-          return false;
-          break;
-        case '\u2702': //✂
-          try {
-            const infoChannel = client.channels.get(getInfoChannelId(message));
-            const embed = new Discord.RichEmbed(message.embeds[0]);
-            let fields = "";
-            if (embed.fields.length -3 > 0) {
-              for (var i = 0; i < embed.fields.length -3; i++) {
-                fields += `${i + 1} - ${embed.fields[i].name} \n`;
-              }
-              infoChannel.send(`${user} Please enter numbers what fields you want to remove \n ${fields}`).then(() => {
-                const filter = m => user.id === m.author.id;
-                infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
-                  .then(m => {
-                    removeFields(message, m.first().content);
-                  })
+      if (reaction.emoji.name == '❌') {
+        sendDeletionPrompt(reaction.message, user.id);
+        reaction.remove(user.id);
+        return false;
+      } else {
+        try {
+          const infoChannel = client.channels.get(getInfoChannelId(message));
+          switch (reaction.emoji.name) {
+            case '📝':
+              sendInfoRequestPrompt(infoChannel, user, `Please enter edits, no prefix needed\n for example: \`--seed 31337\``)
+                .then(userStr => addAttitionalFields(message, userStr))
+                .catch(console.error);
+
+              reaction.remove(user.id);
+              return false;
+              break;
+            case '\u2702': //✂
+              const embed = new Discord.RichEmbed(message.embeds[0]);
+              let fields = "";
+              if (embed.fields.length -3 > 0) {
+                for (var i = 0; i < embed.fields.length -3; i++) {
+                  fields += `${i + 1} - ${embed.fields[i].name} \n`;
+                }
+                sendInfoRequestPrompt(infoChannel, user, `Please enter numbers what fields you want to remove \n${fields}`)
+                  .then(userStr => removeFields(message, userStr))
                   .catch((e) => {
                     console.log(e);
-                    infoChannel.send('Edit window is over.');
                   });
-                });
-            } else {
-              infoChannel.send(`${user} no field to remove`);
-            }
-
-          } catch (e) {
-            message.channel.send("error: " + e).then(m => m.delete(60000));
-          }
-          reaction.remove(user.id);
-          return false;
-          break;
-        case '❌':
-          sendDeletionPrompt(reaction.message, user.id);
-          reaction.remove(user.id);
-          return false;
-          break;
-        case '⏱':
-          try {
-            const infoChannel = client.channels.get(getInfoChannelId(message));
-            const embed = new Discord.RichEmbed(message.embeds[0]);
-            const participants = embed.fields[embed.fields.length-3].value
-            infoChannel.send(`${user} Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`).then(() => {
-            const filter = m => user.id === m.author.id;
-            infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
-              .then(m => {
-                const t = parseInt(m.first().content.match(/\d+/), 10);
-                if (5 <= t && t <= 30 ) {
-                  infoChannel.send(`${participants}\n Countdown has started for ${t}seconds`);
-                  setTimeout(()=>infoChannel.send(`**START**`),t*1000);
-                  for (var i = 1; i < 5; i++) {
-                    setTimeout((time)=>{
-                      infoChannel.send(`Countdown: ${time}seconds`).then(ctm => ctm.delete(60000));
-                    }, (t-i)*1000,i);
+              } else {
+                infoChannel.send(`${user} no field to remove`);
+              }
+              reaction.remove(user.id);
+              return false;
+              break;
+            case '⏱':
+              sendInfoRequestPrompt(infoChannel, user, `Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`)
+                .then(userStr => {
+                  const t = parseInt(userStr, 10);
+                  if (5 <= t && t <= 30 ) {
+                    const embed = new Discord.RichEmbed(message.embeds[0]);
+                    const participants = embed.fields[embed.fields.length-3].value
+                    startCountdown(infoChannel, t, participants);
+                  } else {
+                    infoChannel.send("Value has to be between 5 and 30 seconds.")
                   }
-                  if (Math.floor(t/5)>1) {
-                    for (var i = 1; i < Math.floor(t/5); i++) {
-                      setTimeout((time)=>{
-                        infoChannel.send(`Countdown: ${time}seconds`).then(ctm => ctm.delete(60000));
-                      }, (t-i*5)*1000,i*5);
-                    }
-                  }
-                } else {
-                  infoChannel.send("Value has to be btween 5 and 30 seconds.")
-                }
-              })
-              .catch((e) => {
-                console.log(e);
-                infoChannel.send('Too slow, better luck next time.');
-              });
-            });
-          } catch (e) {
-            message.channel.send("error: " + e).then(m => m.delete(60000));
+                }).catch(console.error);
+              reaction.remove(user.id);
+              return false;
+              break;
+            case '💌':
+            case '📧':
+              sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
+                .then(userStr => {
+                  const embed = new Discord.RichEmbed(message.embeds[0]);
+                  const participants = embed.fields[embed.fields.length-3].value
+                  const messageEmbed = new Discord.RichEmbed()
+                    .addField(`Message from ${user.username}`, participants)
+                    .addField("Message:", userStr)
+                    .addField("Link to event:", message.url)
+                    .setColor(0x00FF00);
+                  infoChannel.send(messageEmbed);
+                }).catch(console.error);
+              reaction.remove(user.id);
+              return false;
+              break;
+              reaction.remove(user.id);
+              return false;
+              break;
           }
-          reaction.remove(user.id);
-          return false;
-          break;
-        case '💌':
-        case '📧':
-          try {
-            const infoChannel = client.channels.get(getInfoChannelId(message));
-            const embed = new Discord.RichEmbed(message.embeds[0]);
-            const participants = embed.fields[embed.fields.length-3].value
-            infoChannel.send(`${user} Please enter your message.`).then(promptMessage => {
-            const filter = m => user.id === m.author.id;
-            infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
-              .then(messages => {
-                const userMessage = messages.first();
-                const messageEmbed = new Discord.RichEmbed()
-                  .addField(`Message from ${user.username}`, participants)
-                  .addField("Message:", userMessage.content)
-                  .addField("Link to event:", message.url)
-                  .setColor(0x00FF00);
-                userMessage.delete();
-                promptMessage.delete();
-                infoChannel.send(messageEmbed);
-              })
-              .catch((e) => {
-                console.log(e);
-                infoChannel.send('Message send window over.');
-              });
-            });
-          } catch (e) {
-            message.channel.send("error: " + e).then(m => m.delete(60000));
-          }
-          reaction.remove(user.id);
-          return false;
-          break;
+        } catch (e) {
+          message.channel.send(e).then(m => m.delete(60000));
+        }
       }
-    } //
+    }
     return true;
   }
   const collector = message.createReactionCollector(filter);
