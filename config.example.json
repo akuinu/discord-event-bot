@@ -1,28 +1,3 @@
 {
-  "discord_token": "discord bot token for connection",
-  "servers": {
-    "serverID": {
-      "eventChannel": "channelID",
-      "infoChannel": "channelID",
-      "role": "roldID - optional restriction",
-      "type": "type of event - optional"
-    }
-  },
-  "types": {
-    "default": {
-      "authorField": "Race created by ",
-      "footer": "Race powered by Event Bot",
-      "participants": "Runners:"
-    },
-    "race": {
-      "authorField": "Race created by ",
-      "footer": "Race powered by Event Bot",
-      "participants": "Runners:"
-    },
-    "event": {
-      "authorField": "Event held by ",
-      "footer": "Event powered by Event Bot",
-      "participants": "Participants:"
-    }
-  }
+  "discord_token": "discord bot token for connection"
 }

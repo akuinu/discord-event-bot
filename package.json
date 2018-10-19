@@ -5,7 +5,9 @@
   "main": "bot.js",
   "author": "Aku Inu",
   "dependencies": {
-    "discord.js": "^11.4.2"
+    "discord.js": "^11.4.2",
+    "sequelize": "^4.39.1",
+    "sqlite3": "^4.0.2"
   },
   "devDependencies": {
     "nodemon": "^1.18.4"

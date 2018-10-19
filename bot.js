@@ -1,16 +1,77 @@
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const Sequelize = require('sequelize');
 const config = require('./config.json');
+const serversConfig = {};
+
+const client = new Discord.Client();
 
 const { Client, RichEmbed } = require('discord.js');
+
+const sequelize = new Sequelize('database', 'user', 'password', {
+    host: 'localhost',
+    dialect: 'sqlite',
+    logging: false,
+    operatorsAliases: false,
+    // SQLite only
+    storage: 'database.sqlite',
+});
+
+const serversTable = sequelize.define('servers', {
+    serverID: {
+      type: Sequelize.STRING,
+      unique: true,
+    },
+    eventChannelID: {
+      type: Sequelize.STRING
+    },
+    infoChannelID: {
+      type: Sequelize.STRING
+    },
+    roleID: {
+      type: Sequelize.STRING
+    },
+    type: {
+      type: Sequelize.INTEGER,
+      defaultValue: 1,
+      allowNull: false,
+    }
+});
+
+const typesTable = sequelize.define('types', {
+  name: {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  description: {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  authorField: {
+    type: Sequelize.STRING,
+    defaultValue: "Race created by ",
+    allowNull: false
+  },
+  footer: {
+    type: Sequelize.STRING,
+    defaultValue: "Race powered by Event Bot",
+    allowNull: false
+  },
+  participants: {
+    type: Sequelize.STRING,
+    defaultValue: "Runners:",
+    allowNull: false
+  }
+});
+
+
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
-    if (config.servers.hasOwnProperty(guild.id)) {
-      if(config.servers[guild.id].hasOwnProperty("eventChannel")){
-        client.channels.get(config.servers[guild.id].eventChannel).fetchMessages()
+    if (serversConfig.hasOwnProperty(guild.id)) {
+      if(serversConfig[guild.id].eventChannel !== null){
+        client.channels.get(serversConfig[guild.id].eventChannel).fetchMessages()
           .then(messages =>{
             messages.forEach(message => {
               if (message.author.id == client.user.id) {
@@ -30,9 +91,9 @@ client.on('ready', () => {
 });
 
 client.on('messageReactionRemove', (reaction, user) => {
-  if (config.servers.hasOwnProperty(reaction.message.guild.id)) {
-    if(config.servers[reaction.message.guild.id].hasOwnProperty("eventChannel")){
-      if (config.servers[reaction.message.guild.id].eventChannel == reaction.message.channel.id) {
+  if (serversConfig.hasOwnProperty(reaction.message.guild.id)) {
+    if(serversConfig[reaction.message.guild.id].eventChannel !== null){
+      if (serversConfig[reaction.message.guild.id].eventChannel == reaction.message.channel.id) {
         if (new Discord.RichEmbed(reaction.message.embeds[0]).fields.length > 2) {
           if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == getEventCreator(reaction.message))) {
             updateParticipants(reaction.message);
@@ -44,6 +105,7 @@ client.on('messageReactionRemove', (reaction, user) => {
 });
 
 client.on('message', msg => {
+  console.log(msg.member.hasPermission("ADMINISTRATOR"));
   if (msg.guild){
     if (msg.content.startsWith("!") && isAllowedToHostEvent(msg) && inWatchlist(msg)) {
       /*
@@ -70,24 +132,25 @@ client.on('message', msg => {
 });
 
 function createEvent(msg) {
-  const eventConfig = getEventConfig(msg.guild.id);
-  const embed = new RichEmbed()
+  getEventConfig(msg.guild.id).then(eventConfig => {
+    const embed = new RichEmbed()
     .setColor(0xFF0000)
     .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL)
     .setFooter(eventConfig.footer, client.user.displayAvatarURL)
     .setTimestamp(new Date);
 
-  embed.createFields(msg.content.substring(6));
-  embed.addField(eventConfig.participants, '\u200B')
+    embed.createFields(msg.content.substring(6));
+    embed.addField(eventConfig.participants, '\u200B')
     .addBlankField()
     .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
-  try {
-    client.channels.get(getEventChannelId(msg)).send(embed)
+    try {
+      client.channels.get(getEventChannelId(msg)).send(embed)
       .then(message => addCollector(message))
       .catch(console.error);
-  } catch (e) {
-    msg.reply(e);
-  }
+    } catch (e) {
+      msg.reply(e);
+    }
+  });
 }
 
 function sendHelp(msg) {
@@ -157,9 +220,9 @@ function isAllowedToHostEvent(msg){
 }
 
 function hasRightRoll(msg) {
-  if (config.servers.hasOwnProperty(msg.guild.id)) {
+  if (serversConfig.hasOwnProperty(msg.guild.id)) {
     if (isRoleRequiered(msg.guild.id)) {
-      return msg.member.roles.has(config.servers[msg.guild.id].role);
+      return msg.member.roles.has(serversConfig[msg.guild.id].role);
     }
     return true;
   }
@@ -167,20 +230,21 @@ function hasRightRoll(msg) {
 }
 
 function isRoleRequiered(guildID){
-  return config.servers[guildID].hasOwnProperty("role");
+  return serversConfig[guildID].role !== null;
 }
 
 function inWatchlist(msg){
-  if (config.servers.hasOwnProperty(msg.guild.id)) {
-    return config.servers[msg.guild.id].infoChannel == msg.channel.id;
+  if (serversConfig.hasOwnProperty(msg.guild.id)) {
+    return serversConfig[msg.guild.id].infoChannel == msg.channel.id;
   }
   return false;
 }
 
+// TODO: maybe remove the throw and do proper handeling with null's
 function getEventChannelId(msg){
-  if (config.servers.hasOwnProperty(msg.guild.id)) {
-    if (config.servers[msg.guild.id].hasOwnProperty("eventChannel")) {
-      return config.servers[msg.guild.id].eventChannel;
+  if (serversConfig.hasOwnProperty(msg.guild.id)) {
+    if (serversConfig[msg.guild.id].eventChannel !== null) {
+      return serversConfig[msg.guild.id].eventChannel;
     }else {
       throw "No event channel set up!";
     }
@@ -191,9 +255,9 @@ function getEventChannelId(msg){
 }
 
 function getInfoChannelId(msg){
-  if (config.servers.hasOwnProperty(msg.guild.id)) {
-    if (config.servers[msg.guild.id].hasOwnProperty("infoChannel")) {
-      return config.servers[msg.guild.id].infoChannel;
+  if (serversConfig.hasOwnProperty(msg.guild.id)) {
+    if (serversConfig[msg.guild.id].infoChannel !== null) {
+      return serversConfig[msg.guild.id].infoChannel;
     }else {
       throw "No info channel set up, something wrong with config!";
     }
@@ -203,15 +267,14 @@ function getInfoChannelId(msg){
   }
 }
 
-function getEventConfig(guildID){
-  if (config.servers.hasOwnProperty(guildID)) {
-    if (config.servers[guildID].hasOwnProperty("type")) {
-      if (config.types.hasOwnProperty(config.servers[guildID].type)) {
-        return config.types[config.servers[guildID].type];
-      }
-    }
+async function getEventConfig(guildID){
+  if (serversConfig.hasOwnProperty(guildID)) {
+      const t = await typesTable.findOne({ where: { id: serversConfig[guildID].type }})
+      console.log(t);
+      return t.dataValues;
   }
-  return config.types.default;
+  const d = await typesTable.findOne({ where: { id: 1 }})
+  return d.dataValues;
 }
 
 function oldMessageCheck(message){
@@ -236,7 +299,7 @@ function updateParticipants(message) {
     const users = usersCollectionsArray.reduce( (accCol, curCol) => accCol.concat(curCol), new Discord.Collection());
     Promise.all(users.map(user => message.guild.fetchMember(user.id))).then(members => {
       if (isRoleRequiered(message.guild.id)){
-        members = members.filter(member => member.roles.has(config.servers[message.guild.id].role));
+        members = members.filter(member => member.roles.has(serversConfig[message.guild.id].role));
       }
       const participants = members.reduce((accStr, curStr) => accStr + curStr + " ", "\u200B");
       if (embed.fields[embed.fields.length-3].value !== participants) {
@@ -471,4 +534,23 @@ function addCollector(message){
   //collector.on('remove', (reaction, user) => editEventParticipants(reaction)); not a thing in curret API
 }
 
-client.login(config.discord_token);
+console.log(`Starting up the database.`);
+serversTable.sync().then(() => {
+  console.log("Loading servers config.");
+  serversTable.findAll().then(res => {
+    res.forEach(s => {
+      values = s.dataValues;
+      serversConfig[values.serverID] = {
+        "eventChannel": values.eventChannelID,
+        "infoChannel": values.infoChannelID,
+        "role": values.roleID,
+        "type": values.type
+      }
+    });
+    console.log("Servers config loaded. \nStarting up discord connection.");
+    client.login(config.discord_token);
+  });
+});
+
+// syncing types table
+typesTable.sync();
