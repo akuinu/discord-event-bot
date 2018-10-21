@@ -63,28 +63,13 @@ const typesTable = sequelize.define('types', {
   }
 });
 
-
-
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (serversConfig.hasOwnProperty(guild.id)) {
       if(serversConfig[guild.id].eventChannel !== null){
-        client.channels.get(serversConfig[guild.id].eventChannel).fetchMessages()
-          .then(messages =>{
-            messages.forEach(message => {
-              if (message.author.id == client.user.id) {
-                message.channel.fetchMessage(message.id)
-                  .then(myMessage =>{
-                    oldMessageCheck(myMessage);
-                  }).catch(console.error);
-              }else {
-                // removing non interesting messages from cache
-                message.channel.messages.delete(message.id);
-              }
-            });
-          }).catch(console.error);
+        checkOldMessages(client.channels.get(serversConfig[guild.id].eventChannel));
         }
       }
   });
@@ -105,25 +90,45 @@ client.on('messageReactionRemove', (reaction, user) => {
 });
 
 client.on('message', msg => {
-  console.log(msg.member.hasPermission("ADMINISTRATOR"));
   if (msg.guild){
-    if (msg.content.startsWith("!") && isAllowedToHostEvent(msg) && inWatchlist(msg)) {
+    if (msg.content.startsWith("!")){
+      const command = msg.content.substring(1).split(' ')[0];
       /*
       // no command uses !command arg1 arg2 ... format
       let args = msg.content.substring(1).split(' ');
       var cmd = args.shift();
       */
-      switch(msg.content.substring(1).split(' ')[0]) {
-        // TODO: add proper keyword support
-        case 'event':
-        case 'race':
-        case 'raid':
-        createEvent(msg);
-        break;
-        case 'help':
-        case 'info':
-        sendHelp(msg);
-        break;
+      // TODO: add proper keyword support
+      if (msg.member.hasPermission("ADMINISTRATOR")) {
+        if (command == 'init'){
+          initServerConfig(msg);
+        } else {
+          if (serversConfig.hasOwnProperty(msg.guild.id)) {
+            switch(command) {
+              case 'setRole':     setRole(msg);           break;
+              case 'removeRole':  removeRole(msg);        break;
+              case 'setType':     setType(msg);           break;
+              case 'setInfo':     setInfo(msg);           break;
+              case 'setEvent':    setEvent(msg);          break;
+            }
+          } else {
+            msg.reply("Use !init, can't change if noting has yet set up.\nExample: `!init <info Channel> <event Channel>`");
+          }
+        }
+      }
+      if(isAllowedToHostEvent(msg) && inWatchlist(msg)) {
+        switch(command) {
+          // TODO: add proper keyword support
+          case 'event':
+          case 'race':
+          case 'raid':
+          createEvent(msg);
+          break;
+          case 'help':
+          case 'info':
+          sendHelp(msg);
+          break;
+        }
       }
     }
   }
@@ -277,6 +282,23 @@ async function getEventConfig(guildID){
   return d.dataValues;
 }
 
+function checkOldMessages(channel){
+  channel.fetchMessages()
+    .then(messages =>{
+      messages.forEach(message => {
+        if (message.author.id == client.user.id) {
+          message.channel.fetchMessage(message.id)
+            .then(myMessage =>{
+              oldMessageCheck(myMessage);
+            }).catch(console.error);
+        }else {
+          // removing non interesting messages from cache
+          message.channel.messages.delete(message.id);
+        }
+      });
+    }).catch(console.error);
+}
+
 function oldMessageCheck(message){
   const embed = new Discord.RichEmbed(message.embeds[0]);
   if (embed.fields.length <= 2) {
@@ -377,7 +399,7 @@ function sendDeletionPrompt(message, creatorID){
     .addField("Link to event:", message.url)
     .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle"))
     .then(promptMessage => {
-      promptMessage.react('👍').then(() => promptMessage.react('👎'));
+
       const filter = (reaction, user) => {
           return ['👍', '👎'].includes(reaction.emoji.name) && user.id == creatorID;
       };
@@ -398,6 +420,7 @@ function sendDeletionPrompt(message, creatorID){
         .catch(collected => {
           promptMessage.delete();
         });
+      promptMessage.react('👍').then(() => promptMessage.react('👎'));
     }).catch(console.error);
 }
 
@@ -488,7 +511,7 @@ function addCollector(message){
             case '⏱':
               sendInfoRequestPrompt(infoChannel, user, `Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`)
                 .then(userStr => {
-                  const t = parseInt(userStr, 10);
+                  const t = parseInt(userStr.match(/\d+/), 10);
                   if (5 <= t && t <= 30 ) {
                     const embed = new Discord.RichEmbed(message.embeds[0]);
                     const participants = embed.fields[embed.fields.length-3].value
@@ -511,7 +534,7 @@ function addCollector(message){
                     .addField("Message:", userStr)
                     .addField("Link to event:", message.url)
                     .setColor(0x00FF00);
-                  infoChannel.send(messageEmbed);
+                  infoChannel.send(participants, messageEmbed);
                 }).catch(console.error);
               reaction.remove(user.id);
               return false;
@@ -534,18 +557,103 @@ function addCollector(message){
   //collector.on('remove', (reaction, user) => editEventParticipants(reaction)); not a thing in curret API
 }
 
+function initServerConfig(msg) {
+  const server = {
+    serverID: msg.guild.id
+  }
+  const channelKeys = msg.mentions.channels.firstKey(2);
+  if (channelKeys.length == 2) {
+    server.infoChannelID = channelKeys[0];
+    server.eventChannelID = channelKeys[1];
+  }
+  if (msg.mentions.roles.firstKey() !== undefined) {
+    server.roleID = msg.mentions.roles.firstKey();
+  }
+  if (msg.content.match(/race/i)) {
+    server.type = 2;
+  } else if (msg.content.match(/event/i)) {
+    server.type = 3;
+  }
+  if (serversConfig.hasOwnProperty(server.serverID)) {
+    serversTable.update(server, { where: { serverID: server.serverID }} );
+  } else {
+    serversTable.create(server);
+  }
+  addToServerConfig(server);
+  checkOldMessages(msg.mentions.channels.find(val => val.id === server.eventChannelID));
+}
+
+function setInfo(msg) {
+  const server = {};
+  if (msg.mentions.channels.firstKey() !== undefined) {
+    server.infoChannelID = msg.mentions.channels.firstKey();
+    serversConfig[msg.guild.id].infoChannel = msg.mentions.channels.firstKey();
+    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("event info channel has been updated"));
+  }else{
+    msg.reply(`"you need to tag channel to make it work, for example \`!setInfo <channel>\``);
+  }
+}
+
+function setEvent(msg) {
+  const server = {};
+
+  if (msg.mentions.channels.firstKey() !== undefined) {
+    server.eventChannelID = msg.mentions.channels.firstKey();
+    serversConfig[msg.guild.id].eventChannel = msg.mentions.channels.firstKey();
+    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("event annoucment channel has been updated"));
+  }else{
+    msg.reply(`"you need to tag channel to make it work, for example \`!setEvent <channel>\``);
+  }
+
+}
+
+function removeRole(msg) {
+  const server = {roleID : null};
+    serversConfig[msg.guild.id].role = null;
+  serversTable.update(server, { where: { serverID: msg.guild.id }}).then(()=>msg.reply("role has been updated"));
+}
+
+function setRole(msg) {
+  const server = {};
+  if (msg.mentions.roles.firstKey() !== undefined) {
+    server.roleID = msg.mentions.roles.firstKey();
+    serversConfig[msg.guild.id].role = msg.mentions.roles.firstKey();
+  }else{
+    server.roleID = null;
+    serversConfig[msg.guild.id].role = null;
+  }
+  serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("role has been updated"));
+}
+function setType(msg) {
+  const server = {};
+  if (msg.content.match(/race/i)) {
+    server.type = 2;
+    serversConfig[msg.guild.id].type = 2;
+    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("type has been updated"));
+  } else if (msg.content.match(/event/i)) {
+    server.type = 3;
+    serversConfig[msg.guild.id].type = 3;
+    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("type has been updated"));
+  } else {
+    msg.reply("non vaild type.")
+  }
+}
+
+function addToServerConfig(values) {
+  serversConfig[values.serverID] = {
+    "eventChannel": values.eventChannelID,
+    "infoChannel": values.infoChannelID,
+    "role": values.roleID,
+    "type": values.type
+  }
+}
+
 console.log(`Starting up the database.`);
 serversTable.sync().then(() => {
   console.log("Loading servers config.");
   serversTable.findAll().then(res => {
     res.forEach(s => {
-      values = s.dataValues;
-      serversConfig[values.serverID] = {
-        "eventChannel": values.eventChannelID,
-        "infoChannel": values.infoChannelID,
-        "role": values.roleID,
-        "type": values.type
-      }
+      addToServerConfig(s.dataValues)
     });
     console.log("Servers config loaded. \nStarting up discord connection.");
     client.login(config.discord_token);

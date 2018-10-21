@@ -14,7 +14,9 @@
   },
   "nodemonConfig": {
     "ignore": [
-      "config.json"
+      "config.json",
+      "database.sqlite",
+      "database.sqlite-journal"
     ],
     "verbose": true
   }
