@@ -1,11 +1,11 @@
 const Discord = require('discord.js');
 const Sequelize = require('sequelize');
 const config = require('./config.json');
+const embedMessage = require('./embedMessage.js');
+
 const serversConfig = {};
 
 const client = new Discord.Client();
-
-const { Client, RichEmbed } = require('discord.js');
 
 const sequelize = new Sequelize('database', 'user', 'password', {
     host: 'localhost',
@@ -75,20 +75,6 @@ client.on('ready', () => {
   });
 });
 
-client.on('messageReactionRemove', (reaction, user) => {
-  if (serversConfig.hasOwnProperty(reaction.message.guild.id)) {
-    if(serversConfig[reaction.message.guild.id].eventChannel !== null){
-      if (serversConfig[reaction.message.guild.id].eventChannel == reaction.message.channel.id) {
-        if (new Discord.RichEmbed(reaction.message.embeds[0]).fields.length > 2) {
-          if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == getEventCreator(reaction.message))) {
-            updateParticipants(reaction.message);
-          }
-        }
-      }
-    }
-  }
-});
-
 client.on('message', msg => {
   if (!msg.author.bot){
     if (msg.guild){
@@ -138,12 +124,7 @@ client.on('message', msg => {
     }else{
       client.generateInvite(85056)
       .then(link => {
-        console.log(`Generated bot invite link: ${link}`);
-        const embed = new RichEmbed()
-        .addField("Invite link", link)
-        .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
-        .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
-        msg.reply(embed);
+        msg.reply(embedMessage.invites(link));
       }).catch(console.error);
     }
   }
@@ -151,9 +132,33 @@ client.on('message', msg => {
   msg.channel.messages.delete(msg.id);
 });
 
+client.on('messageReactionRemove', (reaction, user) => {
+  if (serversConfig.hasOwnProperty(reaction.message.guild.id)) {
+    if(serversConfig[reaction.message.guild.id].eventChannel !== null){
+      if (serversConfig[reaction.message.guild.id].eventChannel == reaction.message.channel.id) {
+        if (new Discord.RichEmbed(reaction.message.embeds[0]).fields.length > 2) {
+          if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == getEventCreator(reaction.message))) {
+            updateParticipants(reaction.message);
+          }
+        }
+      }
+    }
+  }
+});
+
+client.on('guildCreate', guild => {
+  if (guild.systemChannel) {
+    guild.systemChannel.send(embedMessage.welcome(client.user.displayAvatarURL));
+  }
+});
+
+client.on('guildDelete', guild => {
+  forgetGuild(guild.id);
+});
+
 function createEvent(msg) {
   getEventConfig(msg.guild.id).then(eventConfig => {
-    const embed = new RichEmbed()
+    const embed = new Discord.RichEmbed()
     .setColor(0xFF0000)
     .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL)
     .setFooter(eventConfig.footer, client.user.displayAvatarURL)
@@ -174,30 +179,14 @@ function createEvent(msg) {
 }
 
 function sendHelp(msg) {
-  msg.reply(new RichEmbed()
-    .setColor(0x00FF00)
-    .setTitle("Start the command with !event followed by following options:")
-    .addField("--type text", "Creates \"Event type:\" field with text")
-    .addField("--date text", "Creates \"Date:\" field with text")
-    .addField("--time text", "Creates \"Time:\" field with text")
-    .addField("--rules text", "Creates \"Rules:\" field with text")
-    .addField("--colour text", "Set colour one the side with HEX string (\"0xFF0000\" - red by default)")
-    .addField("--icon url", "Adds corner image")
-    .addField("--img url", "Adds central image")
-    .addBlankField()
-    .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
-    .addField("Message participants", "To send and ping participants - react event message with 💌")
-    .addField("Starting clock", "To start a countdown - react event message with ⏱\n Then enter seconds, min 5, max 30 seconds")
-    .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
-    .addField("Delete", "To delete the event creator has to react event message with ❌"))
-      .then(message => {
-        message.delete(60000);
-        }
-      );
-  msg.delete();
+  msg.reply(embedMessage.help())
+    .then(message => {
+      message.delete(60000);
+      }
+    );
 }
 
-RichEmbed.prototype.createFields = function(command) {
+Discord.RichEmbed.prototype.createFields = function(command) {
   const options = command.split('--');
   options.forEach(option => {
     const args = option.split(' ');
@@ -426,11 +415,7 @@ const userReactionConfirm = (msg, userID) => {
 }
 
 function sendDeletionPrompt(message, creatorID){
-  message.channel.send("<@"+creatorID+">", new RichEmbed()
-    .setColor(0xFFFF00)
-    .setTitle("Do you want to delete event?")
-    .addField("Link to event:", message.url)
-    .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle"))
+  message.channel.send("<@"+creatorID+">", embedMessage.deletiongPrompt(message.url))
     .then(promptMessage => {
       userReactionConfirm(promptMessage,creatorID)
         .then(b => {
@@ -467,13 +452,7 @@ const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
       infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
       .then(messages => {
         const userMessage = messages.first();
-        const messageEmbed = new Discord.RichEmbed()
-          .addField("Recived your input of", userMessage.content)
-          .addField("Info requested:", requestSr)
-          .setTimestamp(new Date)
-          .setColor(0x00FF00);
-        userMessage.reply(messageEmbed).then(m => m.delete(60000));
-        requestMessage.delete();
+        userMessage.reply(embedMessage.userInputRecived(userMessage.content, requestSr)).then(m => m.delete(60000));
         resolve(userMessage.content);
       })
       .catch((e) => {
@@ -549,12 +528,7 @@ function addCollector(message){
                 .then(userStr => {
                   const embed = new Discord.RichEmbed(message.embeds[0]);
                   const participants = embed.fields[embed.fields.length-3].value
-                  const messageEmbed = new Discord.RichEmbed()
-                    .addField(`Message from ${user.username}`, participants)
-                    .addField("Message:", userStr)
-                    .addField("Link to event:", message.url)
-                    .setColor(0x00FF00);
-                  infoChannel.send(participants, messageEmbed);
+                  infoChannel.send(participants, embedMessage.userMessage(user.username, participants, userStr, message.url));
                 }).catch(console.error);
               reaction.remove(user.id).catch(console.log);;
               return false;
@@ -621,7 +595,6 @@ function setEvent(msg) {
   }else{
     msg.reply(`"you need to tag channel to make it work, for example \`!setEvent <channel>\``);
   }
-
 }
 
 function removeRole(msg) {
@@ -658,30 +631,19 @@ function setType(msg) {
 }
 
 function removeBot(msg) {
-  const embed = new RichEmbed()
-    .setColor(0xFF0000)
-    .setThumbnail(client.user.displayAvatarURL)
-    .setTitle("Do you want to remove Event Bot?");
+  let events = -1;
   if (serversHasEventChannel(msg)) {
-    embed.addField("Number of active events by Event Bot:", `${getEventChannel(msg).messages.keyArray().length}`)
+    events = getEventChannel(msg).messages.keyArray().lengt;
   }
-  embed.addField("React to confirm:", "👍 - Remove \t 👎 - Cancle");
-  msg.reply(embed)
+  msg.reply(embedMessage.removeBot(events,client.user.displayAvatarURL))
     .then(requestMessage => {
       userReactionConfirm(requestMessage, msg.author.id)
         .then(b => {
           if (b) {
             const leaveServer = () => {
-              // delete sever info from active
-              delete serversConfig[msg.guild.id];
-              // delete sever info from DB
-              serversTable.destroy({ where: { serverID: msg.guild.id } });
+              forgetGuild(msg.guild.id);
               // last embed message
-              msg.channel.send(new RichEmbed()
-                .setColor(0x00FF00)
-                .setThumbnail(client.user.displayAvatarURL)
-                .setTitle("It was fun to be with you, but for now...\nGood Bye!")
-                .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link."))
+              msg.channel.send(embedMessage.goodbye(client.user.displayAvatarURL))
                 // leave server
                 .then(()=>msg.guild.leave());
             }
@@ -695,6 +657,13 @@ function removeBot(msg) {
           }
     });
   }).catch(console.error);
+}
+
+function forgetGuild(guildID){
+  // delete sever info from active
+  delete serversConfig[guildID];
+  // delete sever info from DB
+  serversTable.destroy({ where: { serverID: guildID } });
 }
 
 function addToServerConfig(values) {
