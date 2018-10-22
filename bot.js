@@ -163,12 +163,12 @@ function createEvent(msg) {
     embed.addField(eventConfig.participants, '\u200B')
     .addBlankField()
     .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
-    try {
-      client.channels.get(getEventChannelId(msg)).send(embed)
+    if (serversHasEventChannel(msg)) {
+      getEventChannel(msg).send(embed)
       .then(message => addCollector(message))
       .catch(console.error);
-    } catch (e) {
-      msg.reply(e);
+    } else {
+      msg.reply("No event channel set up. Can not make event.");
     }
   });
 }
@@ -260,31 +260,26 @@ function inWatchlist(msg){
   return false;
 }
 
-// TODO: maybe remove the throw and do proper handeling with null's
-function getEventChannelId(msg){
-  if (serversConfig.hasOwnProperty(msg.guild.id)) {
-    if (serversConfig[msg.guild.id].eventChannel !== null) {
-      return serversConfig[msg.guild.id].eventChannel;
-    }else {
-      throw "No event channel set up!";
-    }
-  } else {
-    // we should never get here
-    throw "Something wrong with channel config";
-  }
+function getEventChannel(msg){
+  return client.channels.get(serversConfig[msg.guild.id].eventChannel);
 }
 
-function getInfoChannelId(msg){
+function serversHasEventChannel(msg) {
   if (serversConfig.hasOwnProperty(msg.guild.id)) {
-    if (serversConfig[msg.guild.id].infoChannel !== null) {
-      return serversConfig[msg.guild.id].infoChannel;
-    }else {
-      throw "No info channel set up, something wrong with config!";
-    }
-  } else {
-    // we should never get here
-    throw "Something wrong with channel config";
+    return (serversConfig[msg.guild.id].eventChannel !== null);
   }
+  return false;
+}
+
+function getInfoChannel(msg){
+  return client.channels.get(serversConfig[msg.guild.id].infoChannel);
+}
+
+function serversHasInfoChannel(msg) {
+  if (serversConfig.hasOwnProperty(msg.guild.id)) {
+    return (serversConfig[msg.guild.id].infoChannel !== null);
+  }
+  return false;
 }
 
 async function getEventConfig(guildID){
@@ -502,8 +497,10 @@ function addCollector(message){
         reaction.remove(user.id).catch(console.log);;
         return false;
       } else {
-        try {
-          const infoChannel = client.channels.get(getInfoChannelId(message));
+        if (!serversHasInfoChannel(message)) {
+          message.reply("Some admins have managed to get bot to this awkward state of having events and no info channel.").then(m => m.delete(60000));
+        } else {
+          const infoChannel = getInfoChannel(message);
           switch (reaction.emoji.name) {
             case '📝':
               sendInfoRequestPrompt(infoChannel, user, `Please enter edits, no prefix needed\n for example: \`--seed 31337\``)
@@ -566,8 +563,6 @@ function addCollector(message){
               return false;
               break;
           }
-        } catch (e) {
-          message.channel.send(e).then(m => m.delete(60000));
         }
       }
     }
@@ -663,36 +658,42 @@ function setType(msg) {
 }
 
 function removeBot(msg) {
-  msg.reply(new RichEmbed()
+  const embed = new RichEmbed()
     .setColor(0xFF0000)
     .setThumbnail(client.user.displayAvatarURL)
-    .setTitle("Do you want to remove Event Bot?")
-    // FIXME: add ability for it to work when server not configed
-    .addField("Number of active events by Event Bot:", `${msg.guild.channels.get(getEventChannelId(msg)).messages.keyArray().length}`)
-    .addField("React to confirm:", "👍 - Remove \t 👎 - Cancle"))
+    .setTitle("Do you want to remove Event Bot?");
+  if (serversHasEventChannel(msg)) {
+    embed.addField("Number of active events by Event Bot:", `${getEventChannel(msg).messages.keyArray().length}`)
+  }
+  embed.addField("React to confirm:", "👍 - Remove \t 👎 - Cancle");
+  msg.reply(embed)
     .then(requestMessage => {
       userReactionConfirm(requestMessage, msg.author.id)
         .then(b => {
           if (b) {
-            // deleteing all messages
-            Promise.all(msg.guild.channels.get(getEventChannelId(msg)).messages.map(m => m.delete()))
-              .then(() => {
-                // delete sever info from active
-                delete serversConfig[msg.guild.id];
-                // delete sever info from DB
-                serversTable.destroy({ where: { serverID: msg.guild.id } });
-                // last embed message
-                msg.channel.send(new RichEmbed()
-                  .setColor(0x00FF00)
-                  .setThumbnail(client.user.displayAvatarURL)
-                  .setTitle("It was fun to be with you, but for now...\nGood Bye!")
-                  .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link."))
-                  // leave server
-                  .then(()=>msg.guild.leave());
-
-              }).catch(console.error);
+            const leaveServer = () => {
+              // delete sever info from active
+              delete serversConfig[msg.guild.id];
+              // delete sever info from DB
+              serversTable.destroy({ where: { serverID: msg.guild.id } });
+              // last embed message
+              msg.channel.send(new RichEmbed()
+                .setColor(0x00FF00)
+                .setThumbnail(client.user.displayAvatarURL)
+                .setTitle("It was fun to be with you, but for now...\nGood Bye!")
+                .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link."))
+                // leave server
+                .then(()=>msg.guild.leave());
+            }
+            if (serversHasEventChannel(msg)) {
+              // deleteing all messages
+              Promise.all(getEventChannel(msg).messages.map(m => m.delete()))
+              .then(() => leaveServer()).catch(console.error);
+            } else {
+              leaveServer();
+            }
           }
-    })
+    });
   }).catch(console.error);
 }
 
