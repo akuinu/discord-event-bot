@@ -90,46 +90,61 @@ client.on('messageReactionRemove', (reaction, user) => {
 });
 
 client.on('message', msg => {
-  if (msg.guild){
-    if (msg.content.startsWith("!")){
-      const command = msg.content.substring(1).split(' ')[0];
-      /*
-      // no command uses !command arg1 arg2 ... format
-      let args = msg.content.substring(1).split(' ');
-      var cmd = args.shift();
-      */
-      // TODO: add proper keyword support
-      if (msg.member.hasPermission("ADMINISTRATOR")) {
-        if (command == 'init'){
-          initServerConfig(msg);
-        } else {
-          if (serversConfig.hasOwnProperty(msg.guild.id)) {
-            switch(command) {
-              case 'setRole':     setRole(msg);           break;
-              case 'removeRole':  removeRole(msg);        break;
-              case 'setType':     setType(msg);           break;
-              case 'setInfo':     setInfo(msg);           break;
-              case 'setEvent':    setEvent(msg);          break;
-            }
+  if (!msg.author.bot){
+    if (msg.guild){
+      if (msg.content.startsWith("!")){
+        const command = msg.content.substring(1).split(' ')[0];
+        /*
+        // no command uses !command arg1 arg2 ... format
+        let args = msg.content.substring(1).split(' ');
+        var cmd = args.shift();
+        */
+        // TODO: add proper keyword support
+        if (msg.member.hasPermission("ADMINISTRATOR")) {
+          if (command == 'init'){
+            initServerConfig(msg);
+          } else if (command == 'removeBot'){
+            // one does not need to set up bot to have right to remove it with commands
+            removeBot(msg);
           } else {
-            msg.reply("Use !init, can't change if noting has yet set up.\nExample: `!init <info Channel> <event Channel>`");
+            if (serversConfig.hasOwnProperty(msg.guild.id)) {
+              switch(command) {
+                case 'setRole':     setRole(msg);           break;
+                case 'removeRole':  removeRole(msg);        break;
+                case 'setType':     setType(msg);           break;
+                case 'setInfo':     setInfo(msg);           break;
+                case 'setEvent':    setEvent(msg);          break;
+              }
+            } else {
+              msg.reply("Use !init, can't change if noting has yet set up.\nExample: `!init <info Channel> <event Channel>`");
+            }
+          }
+        }
+        if(isAllowedToHostEvent(msg) && inWatchlist(msg)) {
+          switch(command) {
+            // TODO: add proper keyword support
+            case 'event':
+            case 'race':
+            case 'raid':
+            createEvent(msg);
+            break;
+            case 'help':
+            case 'info':
+            sendHelp(msg);
+            break;
           }
         }
       }
-      if(isAllowedToHostEvent(msg) && inWatchlist(msg)) {
-        switch(command) {
-          // TODO: add proper keyword support
-          case 'event':
-          case 'race':
-          case 'raid':
-          createEvent(msg);
-          break;
-          case 'help':
-          case 'info':
-          sendHelp(msg);
-          break;
-        }
-      }
+    }else{
+      client.generateInvite(85056)
+      .then(link => {
+        console.log(`Generated bot invite link: ${link}`);
+        const embed = new RichEmbed()
+        .addField("Invite link", link)
+        .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
+        .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
+        msg.reply(embed);
+      }).catch(console.error);
     }
   }
   // removing it from cache, we have no use for these
@@ -275,7 +290,6 @@ function getInfoChannelId(msg){
 async function getEventConfig(guildID){
   if (serversConfig.hasOwnProperty(guildID)) {
       const t = await typesTable.findOne({ where: { id: serversConfig[guildID].type }})
-      console.log(t);
       return t.dataValues;
   }
   const d = await typesTable.findOne({ where: { id: 1 }})
@@ -374,7 +388,7 @@ function checkIfDeleateRequested(message){
       const reducer = (user, bool) => bool || user.id == creatorID;
       if(users.reduce(reducer, false)){
         sendDeletionPrompt(message, creatorID);
-        message.reactions.get('❌').remove(creatorID);
+        message.reactions.get('❌').remove(creatorID).catch(console.log);;
       }
     }).catch(console.error);
   }
@@ -386,10 +400,34 @@ function removeCommandEmote(message, emoji){
       const creatorID = getEventCreator(message);
       const reducer = (user, bool) => bool || user.id == creatorID;
       if(users.reduce(reducer, false)){
-        message.reactions.get(emoji).remove(creatorID);
+        message.reactions.get(emoji).remove(creatorID).catch(console.log);;
       }
     }).catch(console.error);
   }
+}
+
+const userReactionConfirm = (msg, userID) => {
+  return new Promise((resolve, reject) => {
+    const filter = (reaction, user) => {
+        return ['👍', '👎'].includes(reaction.emoji.name) && user.id == userID;
+    };
+    msg.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] })
+      .then(collected => {
+        const reaction = collected.first();
+        if (reaction.emoji.name === '👍') {
+          msg.delete();
+          resolve(true);
+        } else {
+          msg.delete();
+          resolve(false);
+        }
+      })
+      .catch(collected => {
+        msg.delete();
+        resolve(false);
+      });
+    msg.react('👍').then(() => msg.react('👎'));
+  });
 }
 
 function sendDeletionPrompt(message, creatorID){
@@ -399,28 +437,14 @@ function sendDeletionPrompt(message, creatorID){
     .addField("Link to event:", message.url)
     .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle"))
     .then(promptMessage => {
-
-      const filter = (reaction, user) => {
-          return ['👍', '👎'].includes(reaction.emoji.name) && user.id == creatorID;
-      };
-      promptMessage.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] })
-        .then(collected => {
-          const reaction = collected.first();
-          if (reaction.emoji.name === '👍') {
-            promptMessage.channel.fetchMessage( // featch message by id
-              new Discord.RichEmbed(promptMessage.embeds[0])  // get embeded text
-              .fields[0].value  // first field stores url field
-              .split("/")[6]) // last/7th element in url is message ID
-              .then(eventMessage => eventMessage.delete()).catch(console.error); // deleteing the event message
-            promptMessage.delete();
+      userReactionConfirm(promptMessage,creatorID)
+        .then(b => {
+          if (b) {
+            message.delete();
           } else {
-            promptMessage.delete();
+            message.reactions.get('❌').remove(creatorID).catch(console.log);
           }
-        })
-        .catch(collected => {
-          promptMessage.delete();
-        });
-      promptMessage.react('👍').then(() => promptMessage.react('👎'));
+        }).catch(console.error);
     }).catch(console.error);
 }
 
@@ -455,7 +479,6 @@ const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
           .setColor(0x00FF00);
         userMessage.reply(messageEmbed).then(m => m.delete(60000));
         requestMessage.delete();
-        userMessage.delete();
         resolve(userMessage.content);
       })
       .catch((e) => {
@@ -476,7 +499,7 @@ function addCollector(message){
     if (user.id == getEventCreator(message)) {
       if (reaction.emoji.name == '❌') {
         sendDeletionPrompt(reaction.message, user.id);
-        reaction.remove(user.id);
+        reaction.remove(user.id).catch(console.log);;
         return false;
       } else {
         try {
@@ -487,7 +510,7 @@ function addCollector(message){
                 .then(userStr => addAttitionalFields(message, userStr))
                 .catch(console.error);
 
-              reaction.remove(user.id);
+              reaction.remove(user.id).catch(console.log);;
               return false;
               break;
             case '\u2702': //✂
@@ -505,7 +528,7 @@ function addCollector(message){
               } else {
                 infoChannel.send(`${user} no field to remove`);
               }
-              reaction.remove(user.id);
+              reaction.remove(user.id).catch(console.log);;
               return false;
               break;
             case '⏱':
@@ -520,7 +543,7 @@ function addCollector(message){
                     infoChannel.send("Value has to be between 5 and 30 seconds.")
                   }
                 }).catch(console.error);
-              reaction.remove(user.id);
+              reaction.remove(user.id).catch(console.log);;
               return false;
               break;
             case '💌':
@@ -536,10 +559,10 @@ function addCollector(message){
                     .setColor(0x00FF00);
                   infoChannel.send(participants, messageEmbed);
                 }).catch(console.error);
-              reaction.remove(user.id);
+              reaction.remove(user.id).catch(console.log);;
               return false;
               break;
-              reaction.remove(user.id);
+              reaction.remove(user.id).catch(console.log);;
               return false;
               break;
           }
@@ -596,7 +619,6 @@ function setInfo(msg) {
 
 function setEvent(msg) {
   const server = {};
-
   if (msg.mentions.channels.firstKey() !== undefined) {
     server.eventChannelID = msg.mentions.channels.firstKey();
     serversConfig[msg.guild.id].eventChannel = msg.mentions.channels.firstKey();
@@ -624,6 +646,7 @@ function setRole(msg) {
   }
   serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("role has been updated"));
 }
+
 function setType(msg) {
   const server = {};
   if (msg.content.match(/race/i)) {
@@ -637,6 +660,40 @@ function setType(msg) {
   } else {
     msg.reply("non vaild type.")
   }
+}
+
+function removeBot(msg) {
+  msg.reply(new RichEmbed()
+    .setColor(0xFF0000)
+    .setThumbnail(client.user.displayAvatarURL)
+    .setTitle("Do you want to remove Event Bot?")
+    // FIXME: add ability for it to work when server not configed
+    .addField("Number of active events by Event Bot:", `${msg.guild.channels.get(getEventChannelId(msg)).messages.keyArray().length}`)
+    .addField("React to confirm:", "👍 - Remove \t 👎 - Cancle"))
+    .then(requestMessage => {
+      userReactionConfirm(requestMessage, msg.author.id)
+        .then(b => {
+          if (b) {
+            // deleteing all messages
+            Promise.all(msg.guild.channels.get(getEventChannelId(msg)).messages.map(m => m.delete()))
+              .then(() => {
+                // delete sever info from active
+                delete serversConfig[msg.guild.id];
+                // delete sever info from DB
+                serversTable.destroy({ where: { serverID: msg.guild.id } });
+                // last embed message
+                msg.channel.send(new RichEmbed()
+                  .setColor(0x00FF00)
+                  .setThumbnail(client.user.displayAvatarURL)
+                  .setTitle("It was fun to be with you, but for now...\nGood Bye!")
+                  .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link."))
+                  // leave server
+                  .then(()=>msg.guild.leave());
+
+              }).catch(console.error);
+          }
+    })
+  }).catch(console.error);
 }
 
 function addToServerConfig(values) {
