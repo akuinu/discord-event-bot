@@ -1,67 +1,10 @@
 const Discord = require('discord.js');
-const Sequelize = require('sequelize');
+const client = new Discord.Client();
+const { Servers, Types} = require('./dbObjects');
 const config = require('./config.json');
 const embedMessage = require('./embedMessage.js');
 
 const serversConfig = {};
-
-const client = new Discord.Client();
-
-const sequelize = new Sequelize('database', 'user', 'password', {
-    host: 'localhost',
-    dialect: 'sqlite',
-    logging: false,
-    operatorsAliases: false,
-    // SQLite only
-    storage: 'database.sqlite',
-});
-
-const serversTable = sequelize.define('servers', {
-    serverID: {
-      type: Sequelize.STRING,
-      unique: true,
-    },
-    eventChannelID: {
-      type: Sequelize.STRING
-    },
-    infoChannelID: {
-      type: Sequelize.STRING
-    },
-    roleID: {
-      type: Sequelize.STRING
-    },
-    type: {
-      type: Sequelize.INTEGER,
-      defaultValue: 1,
-      allowNull: false,
-    }
-});
-
-const typesTable = sequelize.define('types', {
-  name: {
-    type: Sequelize.STRING,
-    allowNull: false
-  },
-  description: {
-    type: Sequelize.STRING,
-    allowNull: false
-  },
-  authorField: {
-    type: Sequelize.STRING,
-    defaultValue: "Race created by ",
-    allowNull: false
-  },
-  footer: {
-    type: Sequelize.STRING,
-    defaultValue: "Race powered by Event Bot",
-    allowNull: false
-  },
-  participants: {
-    type: Sequelize.STRING,
-    defaultValue: "Runners:",
-    allowNull: false
-  }
-});
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -273,10 +216,12 @@ function serversHasInfoChannel(msg) {
 
 async function getEventConfig(guildID){
   if (serversConfig.hasOwnProperty(guildID)) {
-      const t = await typesTable.findOne({ where: { id: serversConfig[guildID].type }})
+    const t = await Types.findById(serversConfig[guildID].type);
+    if (t) {
       return t.dataValues;
+    }
   }
-  const d = await typesTable.findOne({ where: { id: 1 }})
+  const d = await Types.findById(1); // getDefault
   return d.dataValues;
 }
 
@@ -551,7 +496,8 @@ function addCollector(message){
 
 function initServerConfig(msg) {
   const server = {
-    serverID: msg.guild.id
+    serverID: msg.guild.id,
+    type: 1
   }
   const channelKeys = msg.mentions.channels.firstKey(2);
   if (channelKeys.length == 2) {
@@ -567,9 +513,9 @@ function initServerConfig(msg) {
     server.type = 3;
   }
   if (serversConfig.hasOwnProperty(server.serverID)) {
-    serversTable.update(server, { where: { serverID: server.serverID }} );
+    Servers.update(server, { where: { serverID: server.serverID }} );
   } else {
-    serversTable.create(server);
+    Servers.create(server);
   }
   addToServerConfig(server);
   checkOldMessages(msg.mentions.channels.find(val => val.id === server.eventChannelID));
@@ -580,7 +526,7 @@ function setInfo(msg) {
   if (msg.mentions.channels.firstKey() !== undefined) {
     server.infoChannelID = msg.mentions.channels.firstKey();
     serversConfig[msg.guild.id].infoChannel = msg.mentions.channels.firstKey();
-    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("event info channel has been updated"));
+    Servers.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("event info channel has been updated"));
   }else{
     msg.reply(`"you need to tag channel to make it work, for example \`!setInfo <channel>\``);
   }
@@ -591,7 +537,7 @@ function setEvent(msg) {
   if (msg.mentions.channels.firstKey() !== undefined) {
     server.eventChannelID = msg.mentions.channels.firstKey();
     serversConfig[msg.guild.id].eventChannel = msg.mentions.channels.firstKey();
-    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("event annoucment channel has been updated"));
+    Servers.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("event annoucment channel has been updated"));
   }else{
     msg.reply(`"you need to tag channel to make it work, for example \`!setEvent <channel>\``);
   }
@@ -600,7 +546,7 @@ function setEvent(msg) {
 function removeRole(msg) {
   const server = {roleID : null};
     serversConfig[msg.guild.id].role = null;
-  serversTable.update(server, { where: { serverID: msg.guild.id }}).then(()=>msg.reply("role has been updated"));
+  Servers.update(server, { where: { serverID: msg.guild.id }}).then(()=>msg.reply("role has been updated"));
 }
 
 function setRole(msg) {
@@ -612,7 +558,7 @@ function setRole(msg) {
     server.roleID = null;
     serversConfig[msg.guild.id].role = null;
   }
-  serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("role has been updated"));
+  Servers.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("role has been updated"));
 }
 
 function setType(msg) {
@@ -620,11 +566,11 @@ function setType(msg) {
   if (msg.content.match(/race/i)) {
     server.type = 2;
     serversConfig[msg.guild.id].type = 2;
-    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("type has been updated"));
+    Servers.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("type has been updated"));
   } else if (msg.content.match(/event/i)) {
     server.type = 3;
     serversConfig[msg.guild.id].type = 3;
-    serversTable.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("type has been updated"));
+    Servers.update(server, { where: { serverID: msg.guild.id }} ).then(()=>msg.reply("type has been updated"));
   } else {
     msg.reply("non vaild type.")
   }
@@ -663,7 +609,7 @@ function forgetGuild(guildID){
   // delete sever info from active
   delete serversConfig[guildID];
   // delete sever info from DB
-  serversTable.destroy({ where: { serverID: guildID } });
+  Servers.destroy({ where: { serverID: guildID } });
 }
 
 function addToServerConfig(values) {
@@ -676,9 +622,9 @@ function addToServerConfig(values) {
 }
 
 console.log(`Starting up the database.`);
-serversTable.sync().then(() => {
+Servers.sync().then(() => {
   console.log("Loading servers config.");
-  serversTable.findAll().then(res => {
+  Servers.findAll().then(res => {
     res.forEach(s => {
       addToServerConfig(s.dataValues)
     });
@@ -688,4 +634,4 @@ serversTable.sync().then(() => {
 });
 
 // syncing types table
-typesTable.sync();
+Types.sync();
