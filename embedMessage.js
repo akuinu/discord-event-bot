@@ -1,9 +1,8 @@
-//  embed messages creator
-//  to move all the long text here
+//  deals with all the discord.RichEmbed messages
 // ========
-const {RichEmbed } = require('discord.js');
+const {RichEmbed} = require('discord.js');
 module.exports = {
-  welcome: (avatar) => {
+  welcome: () => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setThumbnail(avatar)
@@ -16,7 +15,7 @@ module.exports = {
       .addField("More commands info:", "!info");
     return embed;
   },
-  goodbye: (avatar) => {
+  goodbye: () => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setThumbnail(avatar)
@@ -59,7 +58,7 @@ module.exports = {
       .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle")
     return embed;
   },
-  removeBot: (events, avatar) => {
+  removeBot: (events) => {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
       .setThumbnail(avatar)
@@ -85,5 +84,119 @@ module.exports = {
       .addField("Link to event:", url)
       .setColor(0x00FF00);
     return embed;
+  },
+  eventMessage: (msg, eventConfig) => {
+    const embed = new RichEmbed()
+      .setColor(0xFF0000)
+      .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL);
+    embed.setOurFooter(eventConfig.footer);
+
+    embed.createFields(msg.content.substring(6));
+    embed.addField(eventConfig.participants, '\u200B')
+    .addBlankField()
+    .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+    return embed;
+  },
+  addAttitionalFields: (message, text) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    const tempEmbedFields = embed.fields.splice(embed.fields.length-3, 3);
+    embed.createFields(text);
+    while (tempEmbedFields.length > 0) {
+      embed.fields.splice(embed.fields.length, 0,  tempEmbedFields.shift());
+    }
+    return embed;
+  },
+  getEventCreator: (message) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    const userTag = embed.fields[embed.fields.length-1].value.split(' ').pop();
+    return userTag.substring(2,userTag.length -1);
+  },
+  removeFields: (message, text) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    let remouvals = text.split(/,?\s+/).map(function(item) {return parseInt(item, 10) - 1;});
+    remouvals = [...new Set(remouvals)];
+    remouvals.sort((a, b) => a - b);
+    if (remouvals[0] >= 0 && remouvals[remouvals.length-1] <  embed.fields.length - 3) {
+      for (var i = 0; i < remouvals.length; i++) {
+        embed.fields.splice(remouvals[i]-i, 1);
+      }
+    }
+    return embed;
+  },
+  isEventMessage: (message) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    return (embed.fields.length > 2);
+  },
+  getUpdatedParticipants: (message, participants) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    if (embed.fields[embed.fields.length-3].value !== participants) {
+      embed.fields[embed.fields.length-3].value = participants;
+      return embed;
+    }
+    return null;
+  },
+  getParticipants: (message) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    return embed.fields[embed.fields.length-3].value;
+  },
+  getEnumeratedUserFields: (message) => {
+    const embed = new RichEmbed(message.embeds[0]);
+    let fields = "";
+    if (embed.fields.length -3 > 0) {
+      for (var i = 0; i < embed.fields.length -3; i++) {
+        fields += `${i + 1} - ${embed.fields[i].name} \n`;
+      }
+      return fields;
+    }
+    return null;
   }
 };
+
+RichEmbed.prototype.createFields = function(command){
+  const options = command.split('--');
+  options.forEach(option => {
+    const args = option.split(' ');
+    switch(args.shift()) {
+      case 'type':
+        this.addField("Race type:", trimOptions(option), true);
+      break;
+      case 'date':
+        this.addField("Date:", trimOptions(option), true);
+      break;
+      case 'time':
+        this.addField("Time:", trimOptions(option), true);
+      break;
+      case 'rules':
+        this.addField("Rules:", trimOptions(option), true);
+      break;
+      case 'seed':
+        this.addField("Seed:", trimOptions(option), true);
+      break;
+      case 'location':
+        this.addField("Location:", trimOptions(option), true);
+      break;
+      case 'icon':
+        this.setThumbnail(args.shift());
+      break;
+      case 'img':
+        this.setImage(args.shift());
+      break;
+      case 'color':
+      case 'colour': // fall through
+        this.setColor(args.shift());
+      break;
+    }
+  });
+};
+
+RichEmbed.prototype.setOurFooter = function(footerText = "Messages Powered by Event Bot"){
+  this.setFooter(footerText, avatar);
+  this.setTimestamp(new Date);
+};
+
+function trimOptions(str){
+  const n = str.split(" ")[0].length;
+  return str.substring(n).trim().replace("\\n","\n")
+}
+
+const avatar = "https://images-ext-1.discordapp.net/external/pRlPfWDGknRM-KF49gh7heDdYR_DNDAjCZpYGhRcnvg/%3Fsize%3D2048/https/cdn.discordapp.com/avatars/498444285771776000/72fe15ad068db0eed6d84b5326b4a222.png";
