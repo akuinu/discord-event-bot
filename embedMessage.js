@@ -8,7 +8,7 @@ module.exports = {
       .setThumbnail(avatar)
       .setTitle("Hello people, \nI am Event Bot, I help you to host community events.")
       .addField("Setting up: !init <event info channel> <event annoucment channel> <role>",
-        "**<event info channel>** - channel where I will listen to commands and You plan your events\n"+
+        "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
         "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
         "**<role>** - role of people that can host and take part of events")
       .addBlankField()
@@ -89,12 +89,12 @@ module.exports = {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
       .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL);
-    embed.setOurFooter(eventConfig.footer);
 
     embed.createFields(msg.content.substring(6));
     embed.addField(eventConfig.participants, '\u200B')
-    .addBlankField()
-    .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+      .addBlankField()
+      .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+    embed.setOurFooter();
     return embed;
   },
   addAttitionalFields: (message, text) => {
@@ -149,6 +149,86 @@ module.exports = {
       return fields;
     }
     return null;
+  },
+  getServerInitMessage: (server, configured) => {
+    const embed = new RichEmbed();
+    if (server.infoChannelID) {
+      embed.addField("Info channel has been set:", `<#${server.infoChannelID}>`)
+    }
+    if (server.eventChannelID) {
+      embed.addField("Event channel has been set:", `<#${server.eventChannelID}>`)
+    }
+    if (server.roleID) {
+      embed.addField("Roll requiered to host event:", `<@&${server.roleID}>`)
+    }
+    if (configured) {
+      embed.setTitle("Event Bot has been set up for this server.")
+        .setColor("0x00FF00");
+    }else{
+      embed.setTitle("Event Bot has been partially configured!")
+        .setColor("0xFFFF00");
+    }
+    embed.setOurFooter();
+    return embed;
+  },
+  getSetEventMessage: (id) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle("Event Bot settings have been changed.")
+      .addField("Event channel has been set:", `<#${id}>`);
+    embed.setOurFooter();
+    return embed;
+  },
+  getSetInfoMessage: (id) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle("Event Bot settings have been changed.")
+      .addField("Info channel has been set:", `<#${id}>`);
+    embed.setOurFooter();
+    return embed;
+  },
+  getSetRoleMessage: (id) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle("Event Bot settings have been changed.")
+      .addField("Roll requiered to host event:", `<@&${id}>`);
+    embed.setOurFooter();
+    return embed;
+  },
+  getRemoveRoleMessage: (id) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle("Event Bot settings have been changed.")
+      .addField("Roll requiered to host event has been removed:", `yay, free for all`);
+    embed.setOurFooter();
+    return embed;
+  },
+  getFailedCommandMessage: (problem) => {
+    const embed = new RichEmbed()
+      .setColor("0xFF0000")
+      .setTitle("Event Bot can't act on invalid input.")
+      .addField("Problem:", problem);
+    embed.setOurFooter();
+    return embed;
+  },
+  getInitRequieredMessage: () => {
+    const embed = new RichEmbed()
+      .setColor("0xFFFF00")
+      .setTitle("Event Bot can't act if no instructions have been given.")
+      .addField("Setting up: !init <event info channel> <event annoucment channel> <role>",
+        "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
+        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
+        "**<role>** - role of people that can host and take part of events")
+      .addField("For example:","!init #race-discussions #race-announcments  @runners");
+    embed.setOurFooter();
+    return embed;
+  },
+  getTimerStartMessage: (time) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle(`Countdown started for ${time} seconds`);
+    embed.setOurFooter();
+    return embed;
   }
 };
 
@@ -189,7 +269,7 @@ RichEmbed.prototype.createFields = function(command){
   });
 };
 
-RichEmbed.prototype.setOurFooter = function(footerText = "Messages Powered by Event Bot"){
+RichEmbed.prototype.setOurFooter = function(footerText = "Powered by Event Bot"){
   this.setFooter(footerText, avatar);
   this.setTimestamp(new Date);
 };

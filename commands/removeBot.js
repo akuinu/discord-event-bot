@@ -1,6 +1,8 @@
 module.exports = {
 	name: 'removeBot',
 	description: '',
+	adminOnly: true,
+	initRequiered: false,
 	execute(msg, embedMessage, serversConfig) {
 		let events = -1;
 	  if (serversConfig.serversHasEventChannel(msg)) {

@@ -1,15 +1,14 @@
 module.exports = {
 	name: 'event',
+	aliases: ['race', 'raid'],
 	description: 'make event',
+	adminOnly: false,
+	initRequiered: true,
 	execute(msg, embedMessage, serversConfig) {
 		serversConfig[msg.guild.id].getTypeConfig().then(eventConfig => {
-			if (serversConfig.serversHasEventChannel(msg)) {
-				serversConfig.getEventChannel(msg).send(embedMessage.eventMessage(msg, eventConfig[0]))
+			serversConfig.getEventChannel(msg).send(embedMessage.eventMessage(msg, eventConfig[0]))
 				.then(message => serversConfig.addCollector(message))
 				.catch(console.error);
-			} else {
-				msg.reply("No event channel set up. Can not make event.");
-			}
 		});
 	}
 };

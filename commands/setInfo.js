@@ -1,12 +1,15 @@
 module.exports = {
 	name: 'setInfo',
 	description: '',
+	adminOnly: true,
+	initRequiered: true,
 	execute(msg, embedMessage, serversConfig) {
-    if (msg.mentions.channels.firstKey() !== undefined) {
-      serversConfig[msg.guild.id].infoChannelID = msg.mentions.channels.firstKey();
-      serversConfig[msg.guild.id].save().then(()=>msg.reply("event annoucment channel has been updated"));
+		const id = msg.mentions.channels.firstKey();
+    if (id) {
+      serversConfig[msg.guild.id].infoChannelID = id;
+      serversConfig[msg.guild.id].save().then(()=>msg.reply(embedMessage.getSetInfoMessage(id)));
     }else{
-      msg.reply(`"you need to tag channel to make it work, for example \`!setEvent <channel>\``);
+      msg.reply(embedMessage.getFailedCommandMessage(`You need to tag channel to make it work, for example \`!setInfo <channel>\``));
     }
   }
 };

@@ -1,6 +1,8 @@
 module.exports = {
 	name: 'init',
 	description: 'Set up server',
+	adminOnly: true,
+	initRequiered: false,
 	execute(msg, embedMessage, serversConfig) {
 		const server = {
 	    serverID: msg.guild.id,
@@ -11,7 +13,7 @@ module.exports = {
 	    server.infoChannelID = channelKeys[0];
 	    server.eventChannelID = channelKeys[1];
 	  }
-	  if (msg.mentions.roles.firstKey() !== undefined) {
+	  if (msg.mentions.roles.firstKey()) {
 	    server.roleID = msg.mentions.roles.firstKey();
 	  }
 	  if (msg.content.match(/race/i)) {
@@ -19,6 +21,11 @@ module.exports = {
 	  } else if (msg.content.match(/event/i)) {
 	    server.type = 3;
 	  }
-		serversConfig.serverInit(server);
+		serversConfig.serverInit(server)
+			.then(b => {
+				if (b) {
+					msg.reply(embedMessage.getServerInitMessage(server, serversConfig.isServerSetUp(msg.guild.id)));
+				}
+			}).catch(e => msg.reply(embedMessage.getFailedCommandMessage(e)));
 	},
 };

@@ -20,11 +20,9 @@ client.on('ready', () => {
 	embedMessage.avatar = client.user.displayAvatarURL;
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
-    if (serversConfig.hasOwnProperty(guild.id)) {
-      if(serversConfig[guild.id].dataValues.eventChannelID !== null){
-        checkOldMessages(client.channels.get(serversConfig[guild.id].dataValues.eventChannelID));
-        }
-      }
+    if (serversConfig.isServerSetUp(guild.id)) {
+      checkOldMessages(client.channels.get(serversConfig[guild.id].dataValues.eventChannelID));
+    }
   });
 });
 
@@ -32,50 +30,42 @@ client.on('message', msg => {
   if (!msg.author.bot){
     if (msg.guild){
       if (msg.content.startsWith("!")){
-        const command = msg.content.substring(1).split(' ')[0];
-        /*
-        // no command uses !command arg1 arg2 ... format
-        let args = msg.content.substring(1).split(' ');
-        var cmd = args.shift();
-        */
-        // TODO: add proper keyword support
-        if (msg.member.hasPermission("ADMINISTRATOR")) {
-          if (command == 'init'){
-						client.commands.get('init').execute(msg, embedMessage, serversConfig);
-					} else if (command == 'removeBot'){
-            // one does not need to set up bot to have right to remove it with commands
-						client.commands.get('removeBot').execute(msg, embedMessage, serversConfig);
-          } else {
-            if (serversConfig.hasOwnProperty(msg.guild.id)) {
-              switch(command) {
-                case 'setRole':     client.commands.get('setRole').execute(msg, embedMessage, serversConfig);     break;
-                case 'removeRole':  client.commands.get('removeRole').execute(msg, embedMessage, serversConfig);  break;
-                case 'setType':     client.commands.get('setType').execute(msg, embedMessage, serversConfig);     break;
-                case 'setInfo':     client.commands.get('setInfo').execute(msg, embedMessage, serversConfig);     break;
-                case 'setEvent':    client.commands.get('setEvent').execute(msg, embedMessage, serversConfig);    break;
-              }
-            } else {
-              msg.reply("Use !init, can't change if noting has yet set up.\nExample: `!init <info Channel> <event Channel>`");
-            }
-          }
-        }
-        if(serversConfig.isAllowedToHostEvent(msg) && serversConfig.inWatchlist(msg)) {
-          switch(command) {
-            // TODO: add proper keyword support
-            case 'event':
-            case 'race':
-            case 'raid':
-              //createEvent(msg);
-              client.commands.get('event').execute(msg, embedMessage, serversConfig);
-            break;
-            case 'help':
-            case 'info':
-              client.commands.get('info').execute(msg, embedMessage, serversConfig);
-            break;
-          }
-        }
+        const commandName = msg.content.substring(1).split(' ')[0];
+				const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+				if (command){
+					if (command.adminOnly){
+						if (msg.member.hasPermission("ADMINISTRATOR")) {
+							if (command.initRequiered) {
+								if (serversConfig.isServerSetUp(msg.guild.id)) {
+									command.execute(msg, embedMessage, serversConfig);
+								} else {
+									msg.reply(embedMessage.getInitRequieredMessage());
+								}
+							} else {
+								command.execute(msg, embedMessage, serversConfig);
+							}
+						}	else {
+							// ignore non admins doing admin commands
+						}
+					} else {
+						if (command.initRequiered) {
+							if(serversConfig.isAllowedToHostEvent(msg)) {
+								if (serversConfig.inWatchlist(msg)) {
+									command.execute(msg, embedMessage, serversConfig);
+								} else {
+									// should we tell people they are in wrong Channel?
+								}
+							} else {
+								// should we tell people they don't have right to host events?
+							}
+						} else {
+							command.execute(msg, embedMessage, serversConfig);
+						}
+					}
+				}
       }
     }else{
+			// handleing the DM's
       client.generateInvite(85056)
       .then(link => {
         msg.reply(embedMessage.invites(link));
@@ -87,13 +77,11 @@ client.on('message', msg => {
 });
 
 client.on('messageReactionRemove', (reaction, user) => {
-  if (serversConfig.hasOwnProperty(reaction.message.guild.id)) {
-    if(serversConfig[reaction.message.guild.id].dataValues.eventChannelID !== null){
-      if (serversConfig[reaction.message.guild.id].dataValues.eventChannelID == reaction.message.channel.id) {
-        if (embedMessage.isEventMessage(reaction.message)) {
-          if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == embedMessage.getEventCreator(reaction.message))) {
-            serversConfig.updateParticipants(reaction.message);
-          }
+  if (serversConfig.isServerSetUp(reaction.message.guild.id)) {
+    if (serversConfig[reaction.message.guild.id].dataValues.eventChannelID == reaction.message.channel.id) {
+      if (embedMessage.isEventMessage(reaction.message)) {
+        if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == embedMessage.getEventCreator(reaction.message))) {
+          serversConfig.updateParticipants(reaction.message);
         }
       }
     }
@@ -112,6 +100,10 @@ client.on('guildDelete', guild => {
 	// delete sever info from active
 	delete serversConfig[guild.id];
 });
+
+serversConfig.isServerSetUp = (id) => {
+	return serversConfig.hasOwnProperty(id) && serversConfig[id].infoChannelID && serversConfig[id].eventChannelID;
+}
 
 serversConfig.isAllowedToHostEvent = (msg) => {
 	return serversConfig.hasRightRoll(msg);
@@ -269,7 +261,7 @@ function sendDeletionPrompt(message, creatorID){
 }
 
 function startCountdown(channel, time, tagged){
-  channel.send(`${tagged}\n Countdown has started for ${time}seconds`);
+  channel.send(tagged,embedMessage.getTimerStartMessage(time));
   setTimeout(()=>channel.send(`**START**`),time*1000);
   for (var i = 1; i < 5; i++) {
     setTimeout((time)=>{
@@ -297,7 +289,7 @@ const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
       })
       .catch((e) => {
         console.log(e);
-        infoChannel.send("Edit window is over.");
+        infoChannel.send(embedMessage.getFailedCommandMessage("Time to enter input is over."));
         reject(Error("Edit window is over."));
       });
     }).catch((e) => {
@@ -336,7 +328,7 @@ serversConfig.addCollector = (message) => {
 									.then(userStr => message.edit("", embedMessage.removeFields(message, userStr)))
 									.catch(console.log);
 							} else {
-								infoChannel.send(`${user} no field to remove`);
+								infoChannel.send(embedMessage.getFailedCommandMessage(`${user} no field to remove`));
 							}
               reaction.remove(user.id).catch(console.log);;
               return false;
@@ -348,7 +340,7 @@ serversConfig.addCollector = (message) => {
                   if (5 <= t && t <= 30 ) {
                     startCountdown(infoChannel, t, embedMessage.getParticipants(message));
                   } else {
-                    infoChannel.send("Value has to be between 5 and 30 seconds.")
+                    infoChannel.send(embedMessage.getFailedCommandMessage("Value has to be between 5 and 30 seconds."));
                   }
                 }).catch(console.error);
               reaction.remove(user.id).catch(console.log);;
@@ -378,16 +370,20 @@ serversConfig.addCollector = (message) => {
 }
 
 serversConfig.serverInit = (server) => {
-	Servers
-		.findOrCreate({where: { serverID: server.serverID }, defaults: server})
-		.spread((serverNew, created) => {
-			if (created) {
-				addToServerConfig(serverNew);
-			} else {
-				serverNew.update(server).then(updatedServer =>{
-					addToServerConfig(updatedServer);
-				});
-			}
+	return new Promise((resolve, reject) => {
+		// maybe check if thoes are channels we can type in
+		Servers
+			.findOrCreate({where: { serverID: server.serverID }, defaults: server})
+			.spread((serverNew, created) => {
+				if (created) {
+					addToServerConfig(serverNew);
+				} else {
+					serverNew.update(server).then(updatedServer =>{
+						addToServerConfig(updatedServer);
+					});
+				}
+				resolve(true);
+		});
 	});
 }
 
