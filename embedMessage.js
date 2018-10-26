@@ -211,6 +211,13 @@ module.exports = {
     embed.setOurFooter();
     return embed;
   },
+  getUserInputPrompt: (requestSr) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle(requestSr);
+    embed.setOurFooter();
+    return embed;
+  },
   getInitRequieredMessage: () => {
     const embed = new RichEmbed()
       .setColor("0xFFFF00")

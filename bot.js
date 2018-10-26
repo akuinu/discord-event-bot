@@ -279,7 +279,7 @@ function startCountdown(channel, time, tagged){
 
 const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
   return new Promise((resolve, reject) => {
-    infoChannel.send(`${user} ${requestSr}`).then( requestMessage =>{
+    infoChannel.send(user, embedMessage.getUserInputPrompt(requestSr)).then( requestMessage =>{
       const filter = m => user.id === m.author.id;
       infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
       .then(messages => {
@@ -289,7 +289,7 @@ const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
       })
       .catch((e) => {
         console.log(e);
-        infoChannel.send(embedMessage.getFailedCommandMessage("Time to enter input is over."));
+        infoChannel.send(user, embedMessage.getFailedCommandMessage("Time to enter input is over."));
         reject(Error("Edit window is over."));
       });
     }).catch((e) => {
