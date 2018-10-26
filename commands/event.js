@@ -5,8 +5,8 @@ module.exports = {
 	adminOnly: false,
 	initRequiered: true,
 	execute(msg, embedMessage, serversConfig) {
-		serversConfig[msg.guild.id].getTypeConfig().then(eventConfig => {
-			serversConfig.getEventChannel(msg).send(embedMessage.eventMessage(msg, eventConfig[0]))
+		serversConfig.getTypeConfig(msg.guild.id).then(eventConfig => {
+			serversConfig.getEventChannel(msg.guild.id).send(embedMessage.eventMessage(msg, eventConfig[0]))
 				.then(message => serversConfig.addCollector(message))
 				.catch(console.error);
 		});

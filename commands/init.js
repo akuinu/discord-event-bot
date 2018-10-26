@@ -24,7 +24,7 @@ module.exports = {
 		serversConfig.serverInit(server)
 			.then(b => {
 				if (b) {
-					msg.reply(embedMessage.getServerInitMessage(server, serversConfig.isServerSetUp(msg.guild.id)));
+					msg.reply(embedMessage.getServerInitMessage(server, serversConfig.isGuildConfigured(msg.guild.id)));
 				}
 			}).catch(e => msg.reply(embedMessage.getFailedCommandMessage(e)));
 	},
