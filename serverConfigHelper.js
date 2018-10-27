@@ -103,6 +103,9 @@ module.exports = (c) => {
     getTypeConfig: function(guildID){
       return guilds[guildID].getTypeConfig();
     },
+    getGuildObjc: function(guildID){
+      return guilds[guildID];
+    },    
     updateParticipants: function(message){
       /*
         max of 46 runners = field 1024 chars, one user marker "<@Snowflake> " 22 chars

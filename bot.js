@@ -17,7 +17,6 @@ const serverConfigHelper = require('./serverConfigHelper.js')(client);
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-	embedHelper.avatar = client.user.displayAvatarURL;
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (serverConfigHelper.isGuildConfigured(guild.id)) {
@@ -37,12 +36,12 @@ client.on('message', msg => {
 						if (msg.member.hasPermission("ADMINISTRATOR")) {
 							if (command.initRequiered) {
 								if (serverConfigHelper.isGuildConfigured(msg.guild.id)) {
-									command.execute(msg, embedHelper, serverConfigHelper);
+									command.execute(msg, serverConfigHelper);
 								} else {
 									msg.reply(embedHelper.getInitRequieredMessage());
 								}
 							} else {
-								command.execute(msg, embedHelper, serverConfigHelper);
+								command.execute(msg, serverConfigHelper);
 							}
 						}	else {
 							// ignore non admins doing admin commands
@@ -51,7 +50,7 @@ client.on('message', msg => {
 						if (command.initRequiered) {
 							if(serverConfigHelper.isAllowedToHostEvent(msg)) {
 								if (serverConfigHelper.inWatchlist(msg)) {
-									command.execute(msg, embedHelper, serverConfigHelper);
+									command.execute(msg, serverConfigHelper);
 								} else {
 									// should we tell people they are in wrong Channel?
 								}
@@ -59,7 +58,7 @@ client.on('message', msg => {
 								// should we tell people they don't have right to host events?
 							}
 						} else {
-							command.execute(msg, embedHelper, serverConfigHelper);
+							command.execute(msg, serverConfigHelper);
 						}
 					}
 				}
@@ -67,9 +66,9 @@ client.on('message', msg => {
     }else{
 			// handleing the DM's
 			if (msg.content.startsWith("!demo")){
-				client.commands.get("event").execute(msg, embedHelper, serverConfigHelper);
+				client.commands.get("event").execute(msg, serverConfigHelper);
 			} else if(msg.content.startsWith("!help")){
-				client.commands.get("info").execute(msg, embedHelper, serverConfigHelper);
+				client.commands.get("info").execute(msg, serverConfigHelper);
 			} else {
 				client.generateInvite(85056)
 				.then(link => {

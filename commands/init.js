@@ -1,9 +1,10 @@
+const {getServerInitMessage, getFailedCommandMessage} = require('.././embedHelper.js');
 module.exports = {
 	name: 'init',
 	description: 'Set up server',
 	adminOnly: true,
 	initRequiered: false,
-	execute(msg, embedMessage, serversConfig) {
+	execute(msg, serversConfig) {
 		const server = {
 	    serverID: msg.guild.id,
 	    type: 1
@@ -24,8 +25,8 @@ module.exports = {
 		serversConfig.serverInit(server)
 			.then(b => {
 				if (b) {
-					msg.reply(embedMessage.getServerInitMessage(server, serversConfig.isGuildConfigured(msg.guild.id)));
+					msg.reply(getServerInitMessage(server, serversConfig.isGuildConfigured(msg.guild.id)));
 				}
-			}).catch(e => msg.reply(embedMessage.getFailedCommandMessage(e)));
+			}).catch(e => msg.reply(getFailedCommandMessage(e)));
 	},
 };

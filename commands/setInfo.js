@@ -1,15 +1,16 @@
+const {getSetInfoMessage, getFailedCommandMessage} = require('.././embedHelper.js');
 module.exports = {
 	name: 'setInfo',
 	description: '',
 	adminOnly: true,
 	initRequiered: true,
-	execute(msg, embedMessage, serversConfig) {
+	execute(msg, serversConfig) {
 		const id = msg.mentions.channels.firstKey();
     if (id) {
-      serversConfig[msg.guild.id].infoChannelID = id;
-      serversConfig[msg.guild.id].save().then(()=>msg.reply(embedMessage.getSetInfoMessage(id)));
+      serversConfig.getGuildObjc(msg.guild.id).infoChannelID = id;
+      serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getSetInfoMessage(id)));
     }else{
-      msg.reply(embedMessage.getFailedCommandMessage(`You need to tag channel to make it work, for example \`!setInfo <channel>\``));
+      msg.reply(getFailedCommandMessage(`You need to tag channel to make it work, for example \`!setInfo <channel>\``));
     }
   }
 };
