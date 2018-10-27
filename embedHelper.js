@@ -5,7 +5,6 @@ module.exports = {
   welcome: () => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
-      .setThumbnail(avatar)
       .setTitle("Hello people, \nI am Event Bot, I help you to host community events.")
       .addField("Setting up: !init <event info channel> <event annoucment channel> <role>",
         "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
@@ -13,14 +12,15 @@ module.exports = {
         "**<role>** - role of people that can host and take part of events")
       .addBlankField()
       .addField("More commands info:", "!info");
+    embed.setOurStuff();
     return embed;
   },
   goodbye: () => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
-      .setThumbnail(avatar)
       .setTitle("It was fun to be with you, but for now...\nGood Bye!")
-      .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link.")
+      .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link.");
+    embed.setOurStuff();
     return embed;
   },
   help: (admin = false) => {
@@ -63,9 +63,9 @@ module.exports = {
       .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
       .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
       .addBlankField()
-      .addField("Commandsin DM's:", "`!help` - list of commands and `!demo` - to test event messages apparance")
+      .addField("Commands in DM's:", "`!help` - list of commands\n`!demo` - to test event messages apparance")
       .setColor(0x00FF00);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   deletiongPrompt: (url) => {
@@ -79,12 +79,12 @@ module.exports = {
   removeBot: (events) => {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
-      .setThumbnail(avatar)
       .setTitle("Do you want to remove Event Bot?");
     if (events !== -1) {
       embed.addField("Number of active events by Event Bot:", `${events}`)
     }
     embed.addField("React to confirm:", "👍 - Remove \t 👎 - Cancle");
+    embed.setOurStuff();
     return embed;
   },
   userInputRecived: (userStr, requestSr) => {
@@ -93,6 +93,7 @@ module.exports = {
       .addField("Info requested:", requestSr)
       .setTimestamp(new Date)
       .setColor(0x00FF00);
+    embed.setOurStuff();
     return embed;
   },
   userMessage: (username, participants, userStr, url) => {
@@ -101,6 +102,7 @@ module.exports = {
       .addField("Message:", userStr)
       .addField("Link to event:", url)
       .setColor(0x00FF00);
+    embed.setOurStuff();
     return embed;
   },
   eventMessage: (msg, eventConfig) => {
@@ -186,7 +188,7 @@ module.exports = {
       embed.setTitle("Event Bot has been partially configured!")
         .setColor("0xFFFF00");
     }
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getSetEventMessage: (id) => {
@@ -194,7 +196,7 @@ module.exports = {
       .setColor("0x00FF00")
       .setTitle("Event Bot settings have been changed.")
       .addField("Event channel has been set:", `<#${id}>`);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getSetInfoMessage: (id) => {
@@ -202,7 +204,7 @@ module.exports = {
       .setColor("0x00FF00")
       .setTitle("Event Bot settings have been changed.")
       .addField("Info channel has been set:", `<#${id}>`);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getSetRoleMessage: (id) => {
@@ -210,7 +212,7 @@ module.exports = {
       .setColor("0x00FF00")
       .setTitle("Event Bot settings have been changed.")
       .addField("Roll requiered to host event:", `<@&${id}>`);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getRemoveRoleMessage: (id) => {
@@ -218,7 +220,7 @@ module.exports = {
       .setColor("0x00FF00")
       .setTitle("Event Bot settings have been changed.")
       .addField("Roll requiered to host event has been removed:", `yay, free for all`);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getFailedCommandMessage: (problem) => {
@@ -226,14 +228,14 @@ module.exports = {
       .setColor("0xFF0000")
       .setTitle("Event Bot can't act on invalid input.")
       .addField("Problem:", problem);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getUserInputPrompt: (requestSr) => {
     const embed = new RichEmbed()
       .setColor("0x00FF00")
       .setTitle(requestSr);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getInitRequieredMessage: () => {
@@ -245,14 +247,14 @@ module.exports = {
         "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
         "**<role>** - role of people that can host and take part of events")
       .addField("For example:","!init #race-discussions #race-announcments  @runners");
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   },
   getTimerStartMessage: (time) => {
     const embed = new RichEmbed()
       .setColor("0x00FF00")
       .setTitle(`Countdown started for ${time} seconds`);
-    embed.setOurFooter();
+    embed.setOurStuff();
     return embed;
   }
 };
@@ -294,8 +296,14 @@ RichEmbed.prototype.createFields = function(command){
   });
 };
 
+RichEmbed.prototype.setOurStuff = function(){
+  this.setOurFooter();
+  this.setThumbnail('attachment://EB.png');
+};
+
 RichEmbed.prototype.setOurFooter = function(footerText = "Powered by Event Bot"){
-  this.setFooter(footerText, avatar);
+  this.setFooter(footerText, 'attachment://EB.png');
+  this.attachFiles(['./assets/EB.png'])
   this.setTimestamp(new Date);
 };
 
@@ -303,5 +311,3 @@ function trimOptions(str){
   const n = str.split(" ")[0].length;
   return str.substring(n).trim().replace("\\n","\n")
 }
-
-const avatar = "https://images-ext-1.discordapp.net/external/pRlPfWDGknRM-KF49gh7heDdYR_DNDAjCZpYGhRcnvg/%3Fsize%3D2048/https/cdn.discordapp.com/avatars/498444285771776000/72fe15ad068db0eed6d84b5326b4a222.png";

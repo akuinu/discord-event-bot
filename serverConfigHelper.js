@@ -2,8 +2,9 @@ const {Collection} = require('discord.js');
 const embedHelper = require('./embedHelper.js');
 const guilds = {};
 
-module.exports = (c) => {
+module.exports = (c, s) => {
   const client = c;
+  const Servers = s;
   return {
     addGuild: function(s){
       guilds[s.serverID] = s;
@@ -105,7 +106,7 @@ module.exports = (c) => {
     },
     getGuildObjc: function(guildID){
       return guilds[guildID];
-    },    
+    },
     updateParticipants: function(message){
       /*
         max of 46 runners = field 1024 chars, one user marker "<@Snowflake> " 22 chars
@@ -132,10 +133,10 @@ module.exports = (c) => {
           .findOrCreate({where: { serverID: server.serverID }, defaults: server})
           .spread((serverNew, created) => {
             if (created) {
-              serverConfigHelper.addServer(serverNew);
+              this.addGuild(serverNew);
             } else {
               serverNew.update(server).then(updatedServer =>{
-                serverConfigHelper.addServer(updatedServer);
+                this.addGuild(updatedServer);
               });
             }
             resolve(true);
