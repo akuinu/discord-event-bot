@@ -66,10 +66,16 @@ client.on('message', msg => {
       }
     }else{
 			// handleing the DM's
-      client.generateInvite(85056)
-      .then(link => {
-        msg.reply(embedHelper.invites(link));
-      }).catch(console.error);
+			if (msg.content.startsWith("!demo")){
+				client.commands.get("event").execute(msg, embedHelper, serverConfigHelper);
+			} else if(msg.content.startsWith("!help")){
+				client.commands.get("info").execute(msg, embedHelper, serverConfigHelper);
+			} else {
+				client.generateInvite(85056)
+				.then(link => {
+					msg.reply(embedHelper.invites(link));
+				}).catch(console.error);
+			}
     }
   }
   // removing it from cache, we have no use for these

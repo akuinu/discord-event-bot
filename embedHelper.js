@@ -23,31 +23,49 @@ module.exports = {
       .addField("If you start to miss me, just whisper me.", "Way to get new bot inivte link.")
     return embed;
   },
-  help: () => {
+  help: (admin = false) => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
-      .setTitle("Start the command with !event followed by following options:")
-      .addField("--type text", "Creates \"Event type:\" field with text")
-      .addField("--date text", "Creates \"Date:\" field with text")
-      .addField("--time text", "Creates \"Time:\" field with text")
-      .addField("--rules text", "Creates \"Rules:\" field with text")
-      .addField("--seed text", "Creates \"Seed:\" field with text")
-      .addField("--colour text", "Set colour one the side with HEX string (\"0xFF0000\" - red by default)")
-      .addField("--icon url", "Adds corner image")
-      .addField("--img url", "Adds central image")
-      .addBlankField()
-      .addField("Add Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
+      .setTitle("How to use Event Bot")
+      .addField("Creating event message:",
+        "Start the command with `!event` followed by following options:\n"
+        + "**--date text** - Creates \"Date:\" field with text\n"
+        + "**--type text** - Creates \"Event type:\" field with text\n"
+        + "**--time text** - ឵Creates \"Time:\" field with text\n"
+        + "**--rules text** - Creates \"Rules:\" field with text\n"
+        + "**--seed text** - Creates \"Seed:\" field with text\n"
+        + "**--colour text** - Set colour one the side with HEX string (\"0xFF0000\" - red by default)\n"
+        + "**--icon url** - Adds corner image\n"
+        + "**--img url** - Adds central image")
+      .addField("Event message functions:\nAdd Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
       .addField("Message participants", "To send and ping participants - react event message with 💌")
       .addField("Starting clock", "To start a countdown - react event message with ⏱\n Then enter seconds, min 5, max 30 seconds")
       .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
       .addField("Delete", "To delete the event creator has to react event message with ❌");
+    if (admin) {
+      embed.addBlankField()
+      .addField("Setting up:", "`!init <event info channel> <event annoucment channel> <role>`\n"+
+        "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
+        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
+        "**<role>** - role of people that can host and take part of events")
+      .addField("Change info channel", "`!setInfo <channel>`")
+      .addField("Change event channel", "`!setEvent <channel>`")
+      .addField("Change requiered role", "`!setRole <role>`")
+      .addField("Remove requiered role", "`!removeRole <role>`")
+      .addField("Remove Event Bot", "`!removeBot`")
+    }
+    embed.setOurFooter();
     return embed;
   },
   invites: (link) => {
     const embed = new RichEmbed()
       .addField("Invite link", link)
       .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
-      .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot");
+      .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
+      .addBlankField()
+      .addField("Commandsin DM's:", "`!help` - list of commands and `!demo` - to test event messages apparance")
+      .setColor(0x00FF00);
+    embed.setOurFooter();
     return embed;
   },
   deletiongPrompt: (url) => {

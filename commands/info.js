@@ -5,7 +5,7 @@ module.exports = {
 	adminOnly: false,
 	initRequiered: false,
 	execute(msg, embedMessage, serversConfig) {
-    msg.reply(embedMessage.help())
+    msg.reply(embedMessage.help((!msg.guild || msg.member.hasPermission("ADMINISTRATOR")?true : false)))
       .then(m => m.delete(60000));
 	},
 };
