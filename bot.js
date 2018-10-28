@@ -47,7 +47,7 @@ client.on('message', msg => {
 							// ignore non admins doing admin commands
 						}
 					} else {
-						if (command.initRequiered) {
+						if (command.initRequiered && serverConfigHelper.isGuildConfigured(msg.guild.id)) {
 							if(serverConfigHelper.isAllowedToHostEvent(msg)) {
 								if (serverConfigHelper.inWatchlist(msg)) {
 									command.execute(msg, serverConfigHelper);

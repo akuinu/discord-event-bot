@@ -73,7 +73,8 @@ module.exports = {
       .setColor(0xFFFF00)
       .setTitle("Do you want to delete event?")
       .addField("Link to event:", url)
-      .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle")
+      .addField("React to confirm:", "👍 - Delete \t 👎 - Cancle");
+    embed.setOurStuff();
     return embed;
   },
   removeBot: (events) => {
@@ -298,16 +299,18 @@ RichEmbed.prototype.createFields = function(command){
 
 RichEmbed.prototype.setOurStuff = function(){
   this.setOurFooter();
-  this.setThumbnail('attachment://EB.png');
+  //this.setThumbnail('attachment://EB.png');
+  this.setThumbnail('https://raw.githubusercontent.com/akuinu/discord-event-bot/master/assets/EB.png');
 };
 
 RichEmbed.prototype.setOurFooter = function(footerText = "Powered by Event Bot"){
-  this.setFooter(footerText, 'attachment://EB.png');
-  this.attachFiles(['./assets/EB.png'])
+  this.setFooter(footerText, 'https://raw.githubusercontent.com/akuinu/discord-event-bot/master/assets/EB.png');
+  //this.setFooter(footerText, 'attachment://EB.png');
+  //this.attachFiles(['./assets/EB.png'])
   this.setTimestamp(new Date);
 };
 
 function trimOptions(str){
   const n = str.split(" ")[0].length;
-  return str.substring(n).trim().replace("\\n","\n")
+  return str.substring(n).trim().replace(/\\n/gm,"\n")
 }

@@ -87,7 +87,10 @@ module.exports = (c, s) => {
       return guilds.hasOwnProperty(guildID) && guilds[guildID].infoChannelID && guilds[guildID].eventChannelID;
     },
     isRoleRequiered: function(guildID){
-      return guilds[guildID].roleID !== null;
+      if(guilds[guildID].roleID){
+        return true;
+      }
+      return false;
     },
     getEventChannel: function(guildID){
       return client.channels.get(guilds[guildID].eventChannelID);
