@@ -8,10 +8,10 @@ module.exports = {
 		const id = msg.mentions.roles.firstKey();
 		if (id) {
 			serversConfig.getGuildObjc(msg.guild.id).roleID = id;
-			serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getSetRoleMessage(id)));
+			serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getSetRoleMessage(id, serversConfig.isOrganizationRestricted(msg.guild.id))));
 		} else {
 			serversConfig.getGuildObjc(msg.guild.id).roleID = null;
-			serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getRemoveRoleMessage()));
+			serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getRemoveRoleMessage(serversConfig.isOrganizationRestricted(msg.guild.id))));
 		}
 	},
 };

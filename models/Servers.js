@@ -13,6 +13,9 @@ module.exports = (sequelize, DataTypes) => {
       roleID: {
         type: DataTypes.STRING
       },
+			organizerID: {
+				type: DataTypes.STRING
+			},
       type: {
         type: DataTypes.INTEGER,
         defaultValue: 1,

@@ -50,8 +50,10 @@ module.exports = {
         "**<role>** - role of people that can host and take part of events")
       .addField("Change info channel", "`!setInfo <channel>`")
       .addField("Change event channel", "`!setEvent <channel>`")
-      .addField("Change requiered role", "`!setRole <role>`")
-      .addField("Remove requiered role", "`!removeRole <role>`")
+      .addField("Change requiered participants role", "`!setRole <role>`")
+      .addField("Remove requiered participants role", "`!removeRole`")
+      .addField("Change requiered organizers role", "`!setOrganizer <role>`")
+      .addField("Remove requiered organizers role", "`!removeOrganizer`")
       .addField("Remove Event Bot", "`!removeBot`")
     }
     embed.setOurFooter();
@@ -208,19 +210,47 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  getSetRoleMessage: (id) => {
+  getSetOrganizerMessage: (id) => {
     const embed = new RichEmbed()
       .setColor("0x00FF00")
       .setTitle("Event Bot settings have been changed.")
-      .addField("Roll requiered to host event:", `<@&${id}>`);
+      .addField("Role requiered to host event:", `<@&${id}>`);
     embed.setOurStuff();
     return embed;
   },
-  getRemoveRoleMessage: (id) => {
+  getRemoveOrganizerMessage: (id) => {
     const embed = new RichEmbed()
       .setColor("0x00FF00")
-      .setTitle("Event Bot settings have been changed.")
-      .addField("Roll requiered to host event has been removed:", `yay, free for all`);
+      .setTitle("Event Bot settings have been changed.");
+    if (id) {
+      embed.addField("Organizers restriction removed. All allowed participants can now also host events:", `<@&${id}>`);
+    } else {
+      embed.addField("Role requiered to host event has been removed:", `yay, free for all`);
+    }
+    embed.setOurStuff();
+    return embed;
+  },
+  getSetRoleMessage: (id, b) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle("Event Bot settings have been changed.");
+    if (b) {
+      embed.addField("Role requiered to participate in events:", `<@&${id}>`);
+    } else {
+      embed.addField("Role requiered to **host** and participate in events:", `<@&${id}>`);
+    }
+    embed.setOurStuff();
+    return embed;
+  },
+  getRemoveRoleMessage: (b) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle("Event Bot settings have been changed.");
+    if (b) {
+      embed.addField("Role requiered to participate in event has been removed:", `yay, everybody can join in the fun!`);
+    } else {
+      embed.addField("Role requiered to **host** and participate event has been removed:", `yay, everybody can make the fun happen!`);
+    }
     embed.setOurStuff();
     return embed;
   },

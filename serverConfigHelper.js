@@ -86,6 +86,18 @@ module.exports = (c, s) => {
     isGuildConfigured: function(guildID){
       return guilds.hasOwnProperty(guildID) && guilds[guildID].infoChannelID && guilds[guildID].eventChannelID;
     },
+    getParticipationRole: function(guildID){
+      if (this.isRoleRequiered(guildID)) {
+        return guilds[guildID].roleID;
+      }
+      return null;
+    },
+    isOrganizationRestricted: function(guildID){
+      if (guilds[guildID].organizerID) {
+        return true;
+      }
+      return false;
+    },
     isRoleRequiered: function(guildID){
       if(guilds[guildID].roleID){
         return true;
@@ -147,11 +159,10 @@ module.exports = (c, s) => {
       });
     },
     isAllowedToHostEvent: function(msg){
-      return this.hasRightRoll(msg);
-    },
-    hasRightRoll: function(msg){
       if (this.isGuildConfigured(msg.guild.id)) {
-        if (this.isRoleRequiered(msg.guild.id)) {
+        if (this.isOrganizationRestricted(msg.guild.id)) {
+          return msg.member.roles.has(guilds[msg.guild.id].organizerID);
+        } else if (this.isRoleRequiered(msg.guild.id)) {
           return msg.member.roles.has(guilds[msg.guild.id].roleID);
         }
         return true;
@@ -205,7 +216,6 @@ module.exports = (c, s) => {
     },
   }
 }
-
 
 function startCountdown(channel, time, tagged){
   channel.send(tagged,embedHelper.getTimerStartMessage(time));

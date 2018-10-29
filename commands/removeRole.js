@@ -6,6 +6,6 @@ module.exports = {
 	initRequiered: true,
 	execute(msg, serversConfig) {
     serversConfig.getGuildObjc(msg.guild.id).roleID = null;
-    serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getRemoveRoleMessage()));
+    serversConfig.getGuildObjc(msg.guild.id).save().then(()=>msg.reply(getRemoveRoleMessage(serversConfig.isOrganizationRestricted(msg.guild.id))));
 	},
 };
