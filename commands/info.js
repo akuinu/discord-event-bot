@@ -6,7 +6,7 @@ module.exports = {
 	adminOnly: false,
 	initRequiered: false,
 	execute(msg, serversConfig) {
-    msg.reply(help((!msg.guild || msg.member.hasPermission("ADMINISTRATOR")?true : false)))
+    msg.reply(help(serversConfig.getGuildPrefix(msg.guild.id), (!msg.guild || msg.member.hasPermission("ADMINISTRATOR")?true : false)))
       .then(m => m.delete(60000));
 	},
 };

@@ -2,16 +2,16 @@
 // ========
 const {RichEmbed} = require('discord.js');
 module.exports = {
-  welcome: () => {
+  welcome: (prefix = "!") => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("Hello people, \nI am Event Bot, I help you to host community events.")
-      .addField("Setting up: !init <event info channel> <event annoucment channel> <role>",
+      .addField("Setting up: "+ prefix +"init <event info channel> <event annoucment channel> <role>",
         "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
         "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
         "**<role>** - role of people that can host and take part of events")
       .addBlankField()
-      .addField("More commands info:", "!info");
+      .addField("More commands info:", ""+ prefix +"info");
     embed.setOurStuff();
     return embed;
   },
@@ -23,12 +23,12 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  help: (admin = false) => {
+  help: (prefix = "!", admin = false) => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("How to use Event Bot")
       .addField("Creating event message:",
-        "Start the command with `!event` followed by following options:\n"
+        `Start the command with \`${prefix}event\` followed by following options:\n`
         + "**--date text** - Creates \"Date:\" field with text\n"
         + "**--type text** - Creates \"Event type:\" field with text\n"
         + "**--time text** - ឵Creates \"Time:\" field with text\n"
@@ -44,17 +44,18 @@ module.exports = {
       .addField("Delete", "To delete the event creator has to react event message with ❌");
     if (admin) {
       embed.addBlankField()
-      .addField("Setting up:", "`!init <event info channel> <event annoucment channel> <role>`\n"+
+      .addField("Setting up:", `\`${prefix}init <event info channel> <event annoucment channel> <role>\`\n`+
         "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
         "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
         "**<role>** - role of people that can host and take part of events")
-      .addField("Change info channel", "`!setInfo <channel>`")
-      .addField("Change event channel", "`!setEvent <channel>`")
-      .addField("Change requiered participants role", "`!setRole <role>`")
-      .addField("Remove requiered participants role", "`!removeRole`")
-      .addField("Change requiered organizers role", "`!setOrganizer <role>`")
-      .addField("Remove requiered organizers role", "`!removeOrganizer`")
-      .addField("Remove Event Bot", "`!removeBot`")
+      .addField("Change info channel", "`"+ prefix +"setInfo <channel>`")
+      .addField("Change event channel", "`"+ prefix +"setEvent <channel>`")
+      .addField("Change requiered participants role", "`"+ prefix +"setRole <role>`")
+      .addField("Remove requiered participants role", "`"+ prefix +"removeRole`")
+      .addField("Change requiered organizers role", "`"+ prefix +"setOrganizer <role>`")
+      .addField("Remove requiered organizers role", "`"+ prefix +"removeOrganizer`")
+      .addField("Change Event Bot prefix", "`"+ prefix +"<newPrefix>`")
+      .addField("Remove Event Bot", "`"+ prefix +"removeBot`")
     }
     embed.setOurFooter();
     return embed;
@@ -65,7 +66,7 @@ module.exports = {
       .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
       .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
       .addBlankField()
-      .addField("Commands in DM's:", "`!help` - list of commands\n`!demo` - to test event messages apparance")
+      .addField("Commands in DM's:", "!help` - list of commands\n`!demo` - to test event messages apparance")
       .setColor(0x00FF00);
     embed.setOurStuff();
     return embed;
@@ -112,8 +113,7 @@ module.exports = {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
       .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL);
-
-    embed.createFields(msg.content.substring(6));
+    embed.createFields(msg.content);
     embed.addField(eventConfig.participants, '\u200B')
       .addBlankField()
       .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
@@ -297,6 +297,22 @@ module.exports = {
     const embed = new RichEmbed()
       .setColor("0x00FF00")
       .setTitle(`Countdown started for ${time} seconds`);
+    embed.setOurStuff();
+    return embed;
+  },
+  getCurrentPrefixMessage: (prefix) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle(`Current prefix for Event Bot is \`${prefix}\``)
+      .addField(`Also other commands work with \`@Event Bot <command>\``, "Who has time to remember what bot uses what command prefix.");
+    embed.setOurStuff();
+    return embed;
+  },
+  getPrefixSetMessage: (prefix) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle(`Current prefix for Event Bot is set to \`${prefix}\``)
+      .addField(`Also other commands work with \`@Event Bot <command>\``, "Who has time to remember what bot uses what command prefix.");
     embed.setOurStuff();
     return embed;
   }

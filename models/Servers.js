@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
 			organizerID: {
 				type: DataTypes.STRING
 			},
+			prefix: {
+				type: DataTypes.STRING,
+				defaultValue: "!",
+				allowNull: false,
+			},
       type: {
         type: DataTypes.INTEGER,
         defaultValue: 1,

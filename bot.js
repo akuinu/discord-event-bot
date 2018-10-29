@@ -28,41 +28,47 @@ client.on('ready', () => {
 client.on('message', msg => {
   if (!msg.author.bot){
     if (msg.guild){
-      if (msg.content.startsWith("!")){
-        const commandName = msg.content.substring(1).split(' ')[0];
-				const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
-				if (command){
-					if (command.adminOnly){
-						if (msg.member.hasPermission("ADMINISTRATOR")) {
-							if (command.initRequiered) {
-								if (serverConfigHelper.isGuildConfigured(msg.guild.id)) {
-									command.execute(msg, serverConfigHelper);
-								} else {
-									msg.reply(embedHelper.getInitRequieredMessage());
-								}
-							} else {
+			let commandName = "";
+			const prefix = serverConfigHelper.getGuildPrefix(msg.guild.id);
+			if (msg.content.startsWith(prefix)){
+        commandName = msg.content.substring(prefix.length).split(' ')[0];
+				//msg.content = msg.content.substring(1 + commandName.length);
+      } else if (msg.mentions.users.firstKey() == client.user.id) {
+				commandName = msg.content.split(' ')[1];
+				//msg.content = msg.content.substring(23 + commandName.length);
+      }
+			const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+			if (command){
+				if (command.adminOnly){
+					if (msg.member.hasPermission("ADMINISTRATOR")) {
+						if (command.initRequiered) {
+							if (serverConfigHelper.isGuildConfigured(msg.guild.id)) {
 								command.execute(msg, serverConfigHelper);
-							}
-						}	else {
-							// ignore non admins doing admin commands
-						}
-					} else {
-						if (command.initRequiered && serverConfigHelper.isGuildConfigured(msg.guild.id)) {
-							if(serverConfigHelper.isAllowedToHostEvent(msg)) {
-								if (serverConfigHelper.inWatchlist(msg)) {
-									command.execute(msg, serverConfigHelper);
-								} else {
-									// should we tell people they are in wrong Channel?
-								}
 							} else {
-								// should we tell people they don't have right to host events?
+								msg.reply(embedHelper.getInitRequieredMessage());
 							}
 						} else {
 							command.execute(msg, serverConfigHelper);
 						}
+					}	else {
+						// ignore non admins doing admin commands
+					}
+				} else {
+					if (command.initRequiered && serverConfigHelper.isGuildConfigured(msg.guild.id)) {
+						if(serverConfigHelper.isAllowedToHostEvent(msg)) {
+							if (serverConfigHelper.inWatchlist(msg)) {
+								command.execute(msg, serverConfigHelper);
+							} else {
+								// should we tell people they are in wrong Channel?
+							}
+						} else {
+							// should we tell people they don't have right to host events?
+						}
+					} else {
+						command.execute(msg, serverConfigHelper);
 					}
 				}
-      }
+			}
     }else{
 			// handleing the DM's
 			if (msg.content.startsWith("!demo")){

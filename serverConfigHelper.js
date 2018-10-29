@@ -122,6 +122,13 @@ module.exports = (c, s) => {
     getGuildObjc: function(guildID){
       return guilds[guildID];
     },
+    getGuildPrefix: function(guildID) {
+      return guilds[guildID].prefix;
+    },
+    setGuildPrefix: function(guildID, prefix) {
+       guilds[guildID].prefix = prefix;
+       guilds[guildID].save();
+    },
     updateParticipants: function(message){
       /*
         max of 46 runners = field 1024 chars, one user marker "<@Snowflake> " 22 chars
