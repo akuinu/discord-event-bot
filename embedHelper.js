@@ -194,6 +194,18 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
+  getServerConfigMessage: (server) => {
+    const embed = new RichEmbed()
+      .setColor(0x00FF00)
+      .setTitle("Events Bot config is following:")
+      .addField("Info Channel:",server.infoChannelID?`<#${server.infoChannelID}>`:"Not set up")
+      .addField("Event Channel:",server.eventChannelID?`<#${server.eventChannelID}>`:"Not set up")
+      .addField("Participation restriction:",server.roleID?`Only <@&${server.roleID}> can join events`:"Everybody can join events")
+      .addField("Organizer restriction:", server.organizerID ?`Only <@&${server.organizerID}> can host events`:(server.roleID?`Only <@&${server.roleID}> can host events`:"Everybody can creat events"))
+
+    embed.setOurStuff();
+    return embed;
+  },
   getSetEventMessage: (id) => {
     const embed = new RichEmbed()
       .setColor("0x00FF00")
