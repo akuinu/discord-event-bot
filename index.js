@@ -169,7 +169,12 @@ Servers.sync().then(() => {
       serverConfigHelper.addGuild(s);
     });
     console.log("Servers config loaded. \nStarting up discord connection.");
-    client.login(process.env.TOKEN);
+		if (process.env.NODE_ENV == "development") {
+			const config = require('./config.json');
+			client.login(config.TOKEN);
+		}else {
+			client.login(process.env.TOKEN);
+		}
   });
 });
 
