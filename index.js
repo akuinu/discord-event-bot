@@ -174,4 +174,26 @@ Servers.sync().then(() => {
 });
 
 // syncing types table
-Types.sync();
+Types.sync({ force: true }).then(() => {
+    typesTable.create({
+      name: "default",
+      description: "Default - used when no type is set.",
+      authorField: "Race created by ",
+      footer: "Race powered by Event Bot",
+      participants: "Runners:"
+    })
+    typesTable.create({
+      name: "race",
+      description: "Race - default race",
+      authorField: "Race created by ",
+      footer: "Race powered by Event Bot",
+      participants: "Runners:"
+    })
+    typesTable.create({
+      name: "event",
+      description: "Event - default event",
+      authorField: "Event held by ",
+      footer: "Event powered by Event Bot",
+      participants: "Participants:"
+    })
+});
