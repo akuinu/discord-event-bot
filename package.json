@@ -1,23 +1,25 @@
 {
-  "name": "clip-bot",
+  "name": "Event-bot",
   "version": "1.0.0",
   "description": "Makes posts about upcoming speedrunning races and aids gather the participants.",
-  "main": "bot.js",
+  "main": "index.js",
   "author": "Aku Inu",
+  "engines": {
+    "node": "8.x",
+    "npm": "*"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
   "dependencies": {
     "discord.js": "^11.4.2",
-    "sequelize": "^4.39.1",
-    "sqlite3": "^4.0.2"
+    "sequelize": "^4.39.1"
   },
   "devDependencies": {
     "nodemon": "^1.18.4"
   },
   "nodemonConfig": {
-    "ignore": [
-      "config.json",
-      "database.sqlite",
-      "database.sqlite-journal"
-    ],
     "verbose": true
   }
 }
