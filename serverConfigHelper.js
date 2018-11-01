@@ -123,7 +123,10 @@ module.exports = (c, s) => {
       return guilds[guildID];
     },
     getGuildPrefix: function(guildID) {
-      return guilds[guildID].prefix;
+      if (guilds[guildID]) {
+        return guilds[guildID].prefix;
+      }
+      return '!';
     },
     setGuildPrefix: function(guildID, prefix) {
        guilds[guildID].prefix = prefix;
