@@ -8,7 +8,7 @@ module.exports = {
 	execute(msg, serversConfig) {
 		if (msg.guild) {
 			serversConfig.getTypeConfig(msg.guild.id).then(eventConfig => {
-				serversConfig.getEventChannel(msg.guild.id).send(eventMessage(msg, eventConfig[0]))
+				serversConfig.getEventChannel(msg.guild.id).send(eventMessage(msg, eventConfig))
 				.then(message => serversConfig.addCollector(message))
 				.catch(console.error);
 			});

@@ -2,7 +2,6 @@ const fs = require('fs');
 const Discord = require('discord.js');
 const client = new Discord.Client();
 const { Servers, Types} = require('./dbObjects');
-const config = require('./config.json');
 const embedHelper = require('./embedHelper.js');
 
 client.commands = new Discord.Collection();
@@ -170,7 +169,12 @@ Servers.sync().then(() => {
       serverConfigHelper.addGuild(s);
     });
     console.log("Servers config loaded. \nStarting up discord connection.");
-    client.login(config.discord_token);
+		if (process.env.NODE_ENV == "development") {
+			const config = require('./config.json');
+			client.login(config.TOKEN);
+		}else {
+			client.login(process.env.TOKEN);
+		}
   });
 });
 
