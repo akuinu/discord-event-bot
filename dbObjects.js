@@ -11,8 +11,7 @@ const Servers = sequelize.import('models/Servers');
 const Types = sequelize.import('models/Types');
 
 Servers.prototype.getTypeConfig = function() {
-  return sequelize.query("select * from types where id = $typeID",
-    { bind: { typeID: this.type }, type: sequelize.QueryTypes.SELECT });
+  return Types.findById(this.type);
 };
 
 module.exports = { Servers, Types };
