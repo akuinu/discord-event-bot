@@ -16,6 +16,7 @@ const serverConfigHelper = require('./serverConfigHelper.js')(client, Servers);
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
+	logToDiscord("Bot has started up.");
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (serverConfigHelper.isGuildConfigured(guild.id)) {
@@ -102,10 +103,12 @@ client.on('guildCreate', guild => {
   if (guild.systemChannel) {
     guild.systemChannel.send(embedHelper.getWelcomeMessage());
   }
+	logToDiscord(embedHelper.getGuildJoinMessage(guild));
 });
 
 client.on('guildDelete', guild => {
 	serverConfigHelper.removeGuild(guild.id);
+	logToDiscord(embedHelper.getGuildRemoveMessage(guild))
 });
 
 function checkOldMessages(channel){
@@ -159,6 +162,10 @@ function removeCommandEmote(message, emoji){
       }
     }).catch(console.error);
   }
+}
+
+function logToDiscord(message){
+	client.channels.get(process.env.log).send(message);
 }
 
 console.log(`Starting up the database.`);

@@ -315,7 +315,26 @@ module.exports = {
       .addField(`Also other commands work with \`@Event Bot <command>\``, "Who has time to remember what bot uses what command prefix.");
     embed.setOurStuff();
     return embed;
+  },
+  getGuildJoinMessage: (guild) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle(`Guild added.`)
+      .setThumbnail(guild.iconURL)
+      .setTimestamp(new Date)
+      .addField(`${guild.name}`, `Members: ${guild.memberCount}\nChannels: ${guild.channels.size}`);
+    return embed;
+  },
+  getGuildRemoveMessage: (guild) => {
+    const embed = new RichEmbed()
+      .setColor("0xFF0000")
+      .setThumbnail(guild.iconURL)
+      .setTimestamp(new Date)
+      .setTitle(`Guild removed.`)
+      .addField(`${guild.name}`, `Members: ${guild.memberCount}\nChannels: ${guild.channels.size}\nJoined: ${guild.joinedTimestamp}`);
+    return embed;
   }
+
 };
 
 RichEmbed.prototype.createFields = function(command){

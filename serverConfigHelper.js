@@ -10,10 +10,12 @@ module.exports = (c, s) => {
       guilds[s.serverID] = s;
     },
     removeGuild: function(id){
-      // delete sever info from DB
-      guilds[id].destroy();
-      // delete sever info from active
-      delete guilds[id];
+      if (guilds[id]) {
+        // delete sever info from DB
+        guilds[id].destroy();
+        // delete sever info from active
+        delete guilds[id];
+      }
     },
     addCollector: function(message){
       const filter = (reaction, user) =>{
