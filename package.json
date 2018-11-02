@@ -9,7 +9,6 @@
     "npm": "*"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
   "dependencies": {
@@ -18,6 +17,7 @@
     "sequelize": "^4.41.0"
   },
   "devDependencies": {
+    "dotenv": "^6.1.0",
     "nodemon": "^1.18.4"
   },
   "nodemonConfig": {
