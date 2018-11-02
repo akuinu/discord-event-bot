@@ -1,4 +1,4 @@
-const {removeBot, goodbye} = require('.././embedHelper.js');
+const {getBotRemoveConfirmMessage, getGoodbyeMessage} = require('.././embedHelper.js');
 module.exports = {
 	name: 'removeBot',
 	description: '',
@@ -9,14 +9,14 @@ module.exports = {
 	  if (serversConfig.serversHasEventChannel(msg)) {
 	    events = serversConfig.getEventChannel(msg.guild.id).messages.keyArray().length;
 	  }
-	  msg.reply(removeBot(events))
+	  msg.reply(getBotRemoveConfirmMessage(events))
 	    .then(requestMessage => {
 	      serversConfig.userReactionConfirm(requestMessage, msg.author.id)
 	        .then(b => {
 	          if (b) {
 	            const leaveGuild = () => {
 	              // last embed message
-	              msg.channel.send(goodbye())
+	              msg.channel.send(getGoodbyeMessage())
 	                // leave server
 	                .then(()=>msg.guild.leave());
 	            }

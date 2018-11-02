@@ -66,7 +66,7 @@ module.exports = (c, s) => {
                   sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
                     .then(userStr => {
                       const participants = embedHelper.getParticipants(message);
-                      infoChannel.send(participants, embedHelper.userMessage(user.username, participants, userStr, message.url));
+                      infoChannel.send(participants, embedHelper.getUserMessage(user.username, participants, userStr, message.url));
                     }).catch(console.error);
                   reaction.remove(user.id).catch(console.log);;
                   return false;
@@ -216,7 +216,7 @@ module.exports = (c, s) => {
       });
     },
     sendDeletionPrompt: function(message, creatorID){
-      message.channel.send("<@"+creatorID+">", embedHelper.deletiongPrompt(message.url))
+      message.channel.send("<@"+creatorID+">", embedHelper.getDeletionPrompt(message.url))
       .then(promptMessage => {
         this.userReactionConfirm(promptMessage,creatorID)
         .then(b => {
@@ -258,7 +258,7 @@ const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
       infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
       .then(messages => {
         const userMessage = messages.first();
-        userMessage.reply(embedHelper.userInputRecived(userMessage.content, requestSr)).then(m => m.delete(60000));
+        userMessage.reply(embedHelper.getUserInputRecivedConfirmMessage(userMessage.content, requestSr)).then(m => m.delete(60000));
         resolve(userMessage.content);
       })
       .catch((e) => {

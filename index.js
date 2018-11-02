@@ -77,7 +77,7 @@ client.on('message', msg => {
 			} else {
 				client.generateInvite(85056)
 				.then(link => {
-					msg.reply(embedHelper.invites(link));
+					msg.reply(embedHelper.getInvitesMessage(link));
 				}).catch(console.error);
 			}
     }
@@ -100,7 +100,7 @@ client.on('messageReactionRemove', (reaction, user) => {
 
 client.on('guildCreate', guild => {
   if (guild.systemChannel) {
-    guild.systemChannel.send(embedHelper.welcome());
+    guild.systemChannel.send(embedHelper.getWelcomeMessage());
   }
 });
 

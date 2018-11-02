@@ -2,7 +2,7 @@
 // ========
 const {RichEmbed} = require('discord.js');
 module.exports = {
-  welcome: (prefix = "!") => {
+  getWelcomeMessage: (prefix = "!") => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("Hello people, \nI am Event Bot, I help you to host community events.")
@@ -15,7 +15,7 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  goodbye: () => {
+  getGoodbyeMessage: () => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("It was fun to be with you, but for now...\nGood Bye!")
@@ -23,7 +23,7 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  help: (prefix = "!", admin = false) => {
+  getHelpMessage: (prefix = "!", admin = false) => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("How to use Event Bot")
@@ -60,18 +60,18 @@ module.exports = {
     embed.setOurFooter();
     return embed;
   },
-  invites: (link) => {
+  getInvitesMessage: (link) => {
     const embed = new RichEmbed()
       .addField("Invite link", link)
       .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
       .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
       .addBlankField()
-      .addField("Commands in DM's:", "!help` - list of commands\n`!demo` - to test event messages apparance")
+      .addField("Commands in DM's:", "`!help` - list of commands\n`!demo` - to test event messages apparance")
       .setColor(0x00FF00);
     embed.setOurStuff();
     return embed;
   },
-  deletiongPrompt: (url) => {
+  getDeletionPrompt: (url) => {
     const embed = new RichEmbed()
       .setColor(0xFFFF00)
       .setTitle("Do you want to delete event?")
@@ -80,7 +80,7 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  removeBot: (events) => {
+  getBotRemoveConfirmMessage: (events) => {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
       .setTitle("Do you want to remove Event Bot?");
@@ -91,7 +91,7 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  userInputRecived: (userStr, requestSr) => {
+  getUserInputRecivedConfirmMessage: (userStr, requestSr) => {
     const embed = new RichEmbed()
       .addField("Recived your input of", userStr)
       .addField("Info requested:", requestSr)
@@ -100,7 +100,7 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  userMessage: (username, participants, userStr, url) => {
+  getUserMessage: (username, participants, userStr, url) => {
     const embed = new RichEmbed()
       .addField(`Message from ${username}`, participants)
       .addField("Message:", userStr)
@@ -109,7 +109,7 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  eventMessage: (msg, eventConfig) => {
+  getEventMessage: (msg, eventConfig) => {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
       .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL);
