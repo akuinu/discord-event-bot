@@ -15,7 +15,11 @@ for (const file of commandFiles) {
 const serverConfigHelper = require('./serverConfigHelper.js')(client, Servers);
 
 client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+	console.log(`Logged in as ${client.user.tag}!`);
+	if (process.env.test) {
+		process.exit(0);
+	}
+	logToDiscord("Bot has started up.");
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (serverConfigHelper.isGuildConfigured(guild.id)) {
@@ -77,7 +81,7 @@ client.on('message', msg => {
 			} else {
 				client.generateInvite(85056)
 				.then(link => {
-					msg.reply(embedHelper.invites(link));
+					msg.reply(embedHelper.getInvitesMessage(link));
 				}).catch(console.error);
 			}
     }
@@ -100,12 +104,14 @@ client.on('messageReactionRemove', (reaction, user) => {
 
 client.on('guildCreate', guild => {
   if (guild.systemChannel) {
-    guild.systemChannel.send(embedHelper.welcome());
+    guild.systemChannel.send(embedHelper.getWelcomeMessage());
   }
+	logToDiscord(embedHelper.getGuildJoinMessage(guild));
 });
 
 client.on('guildDelete', guild => {
 	serverConfigHelper.removeGuild(guild.id);
+	logToDiscord(embedHelper.getGuildRemoveMessage(guild))
 });
 
 function checkOldMessages(channel){
@@ -161,6 +167,10 @@ function removeCommandEmote(message, emoji){
   }
 }
 
+function logToDiscord(message){
+	client.channels.get(process.env.log).send(message);
+}
+
 console.log(`Starting up the database.`);
 Servers.sync().then(() => {
   console.log("Loading servers config.");
@@ -169,12 +179,7 @@ Servers.sync().then(() => {
       serverConfigHelper.addGuild(s);
     });
     console.log("Servers config loaded. \nStarting up discord connection.");
-		if (process.env.NODE_ENV == "development") {
-			const config = require('./config.json');
-			client.login(config.TOKEN);
-		}else {
-			client.login(process.env.TOKEN);
-		}
+		client.login(process.env.TOKEN);
   });
 });
 

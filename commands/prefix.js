@@ -1,6 +1,7 @@
 const {getCurrentPrefixMessage, getPrefixSetMessage} = require('.././embedHelper.js');
 module.exports = {
 	name: 'prefix',
+	aliases: ['setPrefix'],
 	description: 'Get prefix of Event bot',
 	adminOnly: false,
 	initRequiered: true,

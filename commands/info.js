@@ -1,4 +1,4 @@
-const {help} = require('.././embedHelper.js');
+const {getHelpMessage} = require('.././embedHelper.js');
 module.exports = {
 	name: 'info',
 	aliases: ['help'],
@@ -6,7 +6,7 @@ module.exports = {
 	adminOnly: false,
 	initRequiered: false,
 	execute(msg, serversConfig) {
-    msg.reply(help((msg.guild ? serversConfig.getGuildPrefix(msg.guild.id) : '!'), (!msg.guild || msg.member.hasPermission("ADMINISTRATOR")?true : false)))
+    msg.reply(getHelpMessage((msg.guild ? serversConfig.getGuildPrefix(msg.guild.id) : '!'), (!msg.guild || msg.member.hasPermission("ADMINISTRATOR")?true : false)))
       .then(m => m.delete(60000));
 	},
 };
