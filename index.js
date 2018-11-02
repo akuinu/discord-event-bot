@@ -15,8 +15,11 @@ for (const file of commandFiles) {
 const serverConfigHelper = require('./serverConfigHelper.js')(client, Servers);
 
 client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
 	logToDiscord("Bot has started up.");
+	if (process.env.test) {
+		process.exit(0);
+	}
+  console.log(`Logged in as ${client.user.tag}!`);
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (serverConfigHelper.isGuildConfigured(guild.id)) {
