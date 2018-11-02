@@ -12,11 +12,11 @@
     "test": "node index.js",
     "start": "node index.js"
   },
-
   "dependencies": {
     "discord.js": "^11.4.2",
     "pg": "^7.6.0",
-    "sequelize": "^4.41.0"
+    "sequelize": "^4.41.0",
+    "sqlite3": "^4.0.3"
   },
   "devDependencies": {
     "dotenv": "^6.1.0",
