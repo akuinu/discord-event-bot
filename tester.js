@@ -1,5 +1,31 @@
 var fs = require('fs');
 
+const {Types} = require('./dbObjects');
+
+Types.sync({ force: true }).then(() => {
+    Types.create({
+      name: "default",
+      description: "Default - used when no type is set.",
+      authorField: "Race created by ",
+      footer: "Race powered by Event Bot",
+      participants: "Runners:"
+    })
+    Types.create({
+      name: "race",
+      description: "Race - default race",
+      authorField: "Race created by ",
+      footer: "Race powered by Event Bot",
+      participants: "Runners:"
+    })
+    Types.create({
+      name: "event",
+      description: "Event - default event",
+      authorField: "Event held by ",
+      footer: "Event powered by Event Bot",
+      participants: "Participants:"
+    })
+});
+
 try {
   eval(fs.readFileSync('index.js')+'');
 } catch (e) {
