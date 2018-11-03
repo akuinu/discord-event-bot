@@ -27,32 +27,74 @@ const expectMessage = (target, text, expectedChannel) => {
   });
 };
 
+const testMagicBox = async (magic)=>{
+  return new Promise(async(resolve, reject) => {
+    try {
+      testsAmmount++;
+      if (magic.type == "message") {
+        var t = await expectMessage(magic.targetChannel,magic.text,magic.expectedChannel);
+      }
+      console.log(`${testsAmmount}: Passed - ${magic.name}`);
+      resolve(true);
+    } catch(e) {
+      failsCount++;
+      console.log(`${testsAmmount}: Failed - ${magic.name} \n${e}`);
+      resolve(false);
+    }
+  });
+}
+
+let testsAmmount = 0;
+let failsCount = 0;
 const Discord = require('discord.js');
 const tester = new Discord.Client();
 
 tester.on('ready',async () => {
   console.log(`TESTER: Logged in as ${tester.user.tag}!`);
   // picking random channels
-  const [mainChannle, event, eventChange] = tester.channels.random(3);
-  let testsAmmount = 0;
-  let failsCount = 0;
+  const [mainChannle, eventChannel, eventChange] = tester.channels.random(3);
 
-  try {
-    testsAmmount++;
-    var a = await expectMessage(mainChannle,"!help",mainChannle);
-    console.log(`${testsAmmount}: Passed`);
-  } catch(e) {
-    failsCount++;
-    console.log(`${testsAmmount}: Failed`);
-  }
+  const testCases = [
+    {name:"testing !help",
+      targetChannel: mainChannle,
+      expectedChannel: mainChannle,
+      text:"!help",
+      type:"message"
+    },
+    {name:"testing !config",
+      targetChannel: mainChannle,
+      expectedChannel: mainChannle,
+      text:"!config",
+      type:"message"
+    },
+    {name:"testing init and setting thins up for following test",
+      targetChannel: mainChannle,
+      expectedChannel: mainChannle,
+      text:`!init ${mainChannle} ${eventChannel}`,
+      type:"message"
+    },
+    {name:"make event test",
+      targetChannel: mainChannle,
+      expectedChannel: eventChannel,
+      text:`!event --type just bots doing bot stuff`,
+      type:"message"
+    },
+    {name:"set diffrent event channel",
+      targetChannel: mainChannle,
+      expectedChannel: mainChannle,
+      text:`!setEvent ${eventChange}`,
+      type:"message"
+    },
+    {name:"test if event channel change took place",
+      targetChannel: mainChannle,
+      expectedChannel: eventChange,
+      text:`!event --type just bots doing bot stuff`,
+      type:"message"
+    }
+  ];
 
-  try {
-    testsAmmount++;
-    var b = await expectMessage(mainChannle,"!config",mainChannle);
-    console.log(`${testsAmmount}: Passed`);
-  } catch(e) {
-    failsCount++;
-    console.log(`${testsAmmount}: Failed`);
+  for (var i = 0; i < testCases.length; i++) {
+    await testMagicBox(testCases[i]);
   }
 
   if (failsCount === 0) {
@@ -65,4 +107,4 @@ tester.on('ready',async () => {
 
 });
 
-setTimeout(() => {tester.login(process.env.TESTERTOKEN)}, 2000);
+setTimeout(() => {tester.login(process.env.TESTERTOKEN)}, 5000);
