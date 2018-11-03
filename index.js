@@ -16,9 +16,6 @@ const serverConfigHelper = require('./serverConfigHelper.js')(client, Servers);
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
-	if (process.env.test) {
-		process.exit(0);
-	}
 	let configuredCount = 0;
 	let usersCount = 0;
   // starting up - checks all event channel for event messages
@@ -33,7 +30,7 @@ client.on('ready', () => {
 });
 
 client.on('message', msg => {
-  if (!msg.author.bot){
+  if (!msg.author.bot || process.env.test){
     if (msg.guild){
 			let commandName = "";
 			const prefix = serverConfigHelper.getGuildPrefix(msg.guild.id);
