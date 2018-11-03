@@ -7,22 +7,15 @@ try {
   process.exit(1);
 }
 
-
-const expectMessage = (target, text, expectedChannel) => {
+const expectMessage = (expectedChannel) => {
   return new Promise((resolve, reject) => {
-    target.send(text).then(()  =>{
-      const filter = m => tester.user.id !== m.author.id;
-      expectedChannel.awaitMessages(filter, { time: 5000, maxMatches: 1, errors: ['time'] })
-      .then(messages => {
-        resolve(messages);
-      })
-      .catch((e) => {
-        console.log(e);
-        reject(Error("No responce in time"));
-      });
-    }).catch((e) => {
-      console.log(e);
-      reject(Error(`It broke: ${e}`));
+    const filter = m => tester.user.id !== m.author.id;
+    expectedChannel.awaitMessages(filter, { time: 10000, maxMatches: 1, errors: ['time'] })
+    .then(messages => {
+      resolve(messages);
+    })
+    .catch((e) => {
+      reject(Error(`No responce in time: ${e}`));
     });
   });
 };
@@ -31,8 +24,13 @@ const testMagicBox = async (magic)=>{
   return new Promise(async(resolve, reject) => {
     try {
       testsAmmount++;
-      if (magic.type == "message") {
-        var t = await expectMessage(magic.targetChannel,magic.text,magic.expectedChannel);
+      if (magic.action == "send") {
+        magic.targetChannel.send(magic.text);
+      } else if (magic.action == "react") {
+        magic.targetChannel.messages.get(magic.targetChannel.lastMessageID).react(magic.reaction);
+      }
+      if (magic.expect == "message") {
+        var t = await expectMessage(magic.expectedChannel);
       }
       console.log(`${testsAmmount}: Passed - ${magic.name}`);
       resolve(true);
@@ -58,39 +56,87 @@ tester.on('ready',async () => {
     {name:"testing !help",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
+      action: "send",
       text:"!help",
-      type:"message"
+      expect:"message"
     },
     {name:"testing !config",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
+      action: "send",
       text:"!config",
-      type:"message"
+      expect:"message"
     },
     {name:"testing init and setting thins up for following test",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
+      action: "send",
       text:`!init ${mainChannle} ${eventChannel}`,
-      type:"message"
+      expect:"message"
     },
-    {name:"make event test",
+    {name:"event create test",
       targetChannel: mainChannle,
       expectedChannel: eventChannel,
+      action: "send",
       text:`!event --type just bots doing bot stuff`,
-      type:"message"
+      expect:"message"
     },
+    {name:"event react message request",
+      targetChannel: eventChannel,
+      expectedChannel: mainChannle,
+      action: "react",
+      reaction: '💌',
+      expect:"message"
+    },
+    {name:"event react start timer",
+      targetChannel: eventChannel,
+      expectedChannel: mainChannle,
+      action: "react",
+      reaction: '⏱',
+      expect:"message"
+    },
+    {name:"event react edit request",
+      targetChannel: eventChannel,
+      expectedChannel: mainChannle,
+      action: "react",
+      reaction: '📝',
+      expect:"message"
+    },
+    {name:"event react delete request",
+      targetChannel: eventChannel,
+      expectedChannel: eventChannel,
+      action: "react",
+      reaction: '❌',
+      expect:"message"
+    }, // chnage to testing set event/info
     {name:"set diffrent event channel",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
+      action: "send",
       text:`!setEvent ${eventChange}`,
-      type:"message"
+      expect:"message"
     },
     {name:"test if event channel change took place",
       targetChannel: mainChannle,
       expectedChannel: eventChange,
+      action: "send",
       text:`!event --type just bots doing bot stuff`,
-      type:"message"
-    }
+      expect:"message"
+    },
+    {name:"set diffrent info channel",
+      targetChannel: mainChannle,
+      expectedChannel: mainChannle,
+      action: "send",
+      text:`!setInfo ${eventChannel}`,
+      expect:"message"
+    },
+    {name:"test if info channel change took place",
+      targetChannel: eventChannel,
+      expectedChannel: eventChange,
+      action: "send",
+      text:`!event --type just bots doing bot stuff`,
+      expect:"message"
+    },
   ];
 
   for (var i = 0; i < testCases.length; i++) {
