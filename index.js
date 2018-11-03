@@ -19,13 +19,17 @@ client.on('ready', () => {
 	if (process.env.test) {
 		process.exit(0);
 	}
-	logToDiscord("Bot has started up.");
+	let configuredCount = 0;
+	let usersCount = 0;
   // starting up - checks all event channel for event messages
   client.guilds.forEach(guild => {
     if (serverConfigHelper.isGuildConfigured(guild.id)) {
+			configuredCount++;
       checkOldMessages(serverConfigHelper.getEventChannel(guild.id));
     }
+		usersCount += guild.members.size;
   });
+	logToDiscord(embedHelper.getBotStartupMessage(client.guilds.size, configuredCount, usersCount, serverConfigHelper.dbCleanup()));
 });
 
 client.on('message', msg => {
