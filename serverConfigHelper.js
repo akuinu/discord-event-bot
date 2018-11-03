@@ -226,6 +226,16 @@ module.exports = (c, s) => {
         }).catch(console.error);
       }).catch(console.error);
     },
+    dbCleanup: function(){
+      let removedRows = 0;
+      guilds.forEach(g =>{
+        if (!client.guilds.get(g.serverID)) {
+          removedRows++;
+          this.removeGuild(g.serverID);
+        }
+      });
+      return removedRows;
+    },
   }
 }
 

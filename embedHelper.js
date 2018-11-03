@@ -333,8 +333,17 @@ module.exports = {
       .setTitle(`Guild removed.`)
       .addField(`${guild.name}`, `Members: ${guild.memberCount}\nChannels: ${guild.channels.size}\nJoined: ${guild.joinedTimestamp}`);
     return embed;
-  }
-
+  },
+  getBotStartupMessage: (guildsCount, configured, usersCount, ambandoned) => {
+    const embed = new RichEmbed()
+      .setColor("0x00FF00")
+      .setTitle(`Bot has started up.`)
+      .setTimestamp(new Date)
+      .addField(`Stats:`, `Guilds: ${guildsCount} (${configured}/${guildsCount})\n` +
+        `Members sum: ${usersCount}\n` + //includes duplicates
+        `Guilds that left during downtime: ${ambandoned}`);
+    return embed;
+  },
 };
 
 RichEmbed.prototype.createFields = function(command){
