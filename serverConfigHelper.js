@@ -1,20 +1,20 @@
 const {Collection} = require('discord.js');
 const embedHelper = require('./embedHelper.js');
-const guilds = {};
+const guilds = new Map();
 
 module.exports = (c, s) => {
   const client = c;
   const Servers = s;
   return {
     addGuild: function(s){
-      guilds[s.serverID] = s;
+      guilds.set(s.serverID, s);
     },
     removeGuild: function(id){
-      if (guilds[id]) {
+      if (guilds.has(id)) {
         // delete sever info from DB
-        guilds[id].destroy();
+        guilds.get(id).destroy();
         // delete sever info from active
-        delete guilds[id];
+        guilds.delete(id);
       }
     },
     addCollector: function(message){
@@ -86,53 +86,53 @@ module.exports = (c, s) => {
       //collector.on('remove', (reaction, user) => editEventParticipants(reaction)); not a thing in curret API
     },
     isGuildConfigured: function(guildID){
-      return guilds.hasOwnProperty(guildID) && guilds[guildID].infoChannelID && guilds[guildID].eventChannelID;
+      return guilds.has(guildID) && guilds.get(guildID).infoChannelID && guilds.get(guildID).eventChannelID;
     },
     getParticipationRole: function(guildID){
       if (this.isRoleRequiered(guildID)) {
-        return guilds[guildID].roleID;
+        return guilds.get(guildID).roleID;
       }
       return null;
     },
     isOrganizationRestricted: function(guildID){
-      if (guilds[guildID].organizerID) {
+      if (guilds.get(guildID).organizerID) {
         return true;
       }
       return false;
     },
     isRoleRequiered: function(guildID){
-      if(guilds[guildID].roleID){
+      if(guilds.get(guildID).roleID){
         return true;
       }
       return false;
     },
     getEventChannel: function(guildID){
-      return client.channels.get(guilds[guildID].eventChannelID);
+      return client.channels.get(guilds.get(guildID).eventChannelID);
     },
     getEventChannelID: function(guildID){
-      return guilds[guildID].eventChannelID;
+      return guilds.get(guildID).eventChannelID;
     },
     getInfoChannel: function(guildID){
-      return client.channels.get(guilds[guildID].infoChannelID);
+      return client.channels.get(guilds.get(guildID).infoChannelID);
     },
     getInfoChannelID: function(guildID){
-      return guilds[guildID].infoChannelID;
+      return guilds.get(guildID).infoChannelID;
     },
     getTypeConfig: function(guildID){
-      return guilds[guildID].getTypeConfig();
+      return guilds.get(guildID).getTypeConfig();
     },
     getGuildObjc: function(guildID){
-      return guilds[guildID];
+      return guilds.get(guildID);
     },
     getGuildPrefix: function(guildID) {
-      if (guilds[guildID]) {
-        return guilds[guildID].prefix;
+      if (guilds.get(guildID)) {
+        return guilds.get(guildID).prefix;
       }
       return '!';
     },
     setGuildPrefix: function(guildID, prefix) {
-       guilds[guildID].prefix = prefix;
-       guilds[guildID].save();
+       guilds.get(guildID).prefix = prefix;
+       guilds.get(guildID).save();
     },
     updateParticipants: function(message){
       /*
@@ -143,7 +143,7 @@ module.exports = (c, s) => {
         const users = usersCollectionsArray.reduce( (accCol, curCol) => accCol.concat(curCol), new Collection());
         Promise.all(users.map(user => message.guild.fetchMember(user.id))).then(members => {
           if (this.isRoleRequiered(message.guild.id)){
-            members = members.filter(member => member.roles.has(guilds[message.guild.id].roleID));
+            members = members.filter(member => member.roles.has(guilds.get(message.guild.id).roleID));
           }
           const participants = members.reduce((accStr, curStr) => accStr + curStr + " ", "\u200B");
           const uptaded = embedHelper.getUpdatedParticipants(message, participants);
@@ -173,9 +173,9 @@ module.exports = (c, s) => {
     isAllowedToHostEvent: function(msg){
       if (this.isGuildConfigured(msg.guild.id)) {
         if (this.isOrganizationRestricted(msg.guild.id)) {
-          return msg.member.roles.has(guilds[msg.guild.id].organizerID);
+          return msg.member.roles.has(guilds.get(msg.guild.id).organizerID);
         } else if (this.isRoleRequiered(msg.guild.id)) {
-          return msg.member.roles.has(guilds[msg.guild.id].roleID);
+          return msg.member.roles.has(guilds.get(msg.guild.id).roleID);
         }
         return true;
       }
@@ -183,14 +183,14 @@ module.exports = (c, s) => {
     },
     inWatchlist: function(msg){
       // maybe make a list of event creat channels
-      if (guilds.hasOwnProperty(msg.guild.id)) {
-        return guilds[msg.guild.id].infoChannelID == msg.channel.id;
+      if (guilds.has(msg.guild.id)) {
+        return guilds.get(msg.guild.id).infoChannelID == msg.channel.id;
       }
       return false;
     },
     serversHasEventChannel: function(id){
-      if (guilds.hasOwnProperty(id)) {
-        return (guilds[id].eventChannelID !== null);
+      if (guilds.has(id)) {
+        return (guilds.get(id).eventChannelID !== null);
       }
       return false;
     },
@@ -247,8 +247,8 @@ function startCountdown(channel, time, tagged){
 }
 
 function serversHasInfoChannel(guildID){
-  if (guilds.hasOwnProperty(guildID)) {
-    return (guilds[guildID].infoChannelID !== null);
+  if (guilds.has(guildID)) {
+    return (guilds.get(guildID).infoChannelID !== null);
   }
   return false;
 }
