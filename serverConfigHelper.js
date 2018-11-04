@@ -29,50 +29,44 @@ module.exports = (c, s) => {
               message.reply("Some admins have managed to get bot to this awkward state of having events and no info channel.").then(m => m.delete(60000));
             } else {
               const infoChannel = this.getInfoChannel(message.guild.id);
-              switch (reaction.emoji.name) {
-                case '📝':
+              if (reaction.emoji.name === '📝') {
                   sendInfoRequestPrompt(infoChannel, user, `Please enter edits, no prefix needed\n for example: \`--seed 31337\``)
                     .then(userStr => message.edit("", embedHelper.addAttitionalFields(message, userStr)))
                     .catch(console.error);
 
                   reaction.remove(user.id).catch(console.log);;
                   return false;
-                  break;
-                case '\u2702': //✂
-                  const fields = embedHelper.getEnumeratedUserFields(message);
-                  if (fields) {
-                    sendInfoRequestPrompt(infoChannel, user, `Please enter numbers what fields you want to remove \n${fields}`)
-                      .then(userStr => message.edit("", embedHelper.removeFields(message, userStr)))
-                      .catch(console.log);
+              } else if (reaction.emoji.name === '\u2702') {//✂
+                const fields = embedHelper.getEnumeratedUserFields(message);
+                if (fields) {
+                  sendInfoRequestPrompt(infoChannel, user, `Please enter numbers what fields you want to remove \n${fields}`)
+                  .then(userStr => message.edit("", embedHelper.removeFields(message, userStr)))
+                  .catch(console.log);
+                } else {
+                  infoChannel.send(user, embedHelper.getFailedCommandMessage(`No field to remove`));
+                }
+                reaction.remove(user.id).catch(console.log);;
+                return false;
+              } else if (/⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)) { //all the clocks 
+                sendInfoRequestPrompt(infoChannel, user, `Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`)
+                .then(userStr => {
+                  const t = parseInt(userStr.match(/\d+/), 10);
+                  if (5 <= t && t <= 30 ) {
+                    startCountdown(infoChannel, t, embedHelper.getParticipants(message));
                   } else {
-                    infoChannel.send(user, embedHelper.getFailedCommandMessage(`No field to remove`));
+                    infoChannel.send(embedHelper.getFailedCommandMessage("Value has to be between 5 and 30 seconds."));
                   }
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
-                case '⏱':
-                  sendInfoRequestPrompt(infoChannel, user, `Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`)
-                    .then(userStr => {
-                      const t = parseInt(userStr.match(/\d+/), 10);
-                      if (5 <= t && t <= 30 ) {
-                        startCountdown(infoChannel, t, embedHelper.getParticipants(message));
-                      } else {
-                        infoChannel.send(embedHelper.getFailedCommandMessage("Value has to be between 5 and 30 seconds."));
-                      }
-                    }).catch(console.error);
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
-                case '💌':
-                case '📧':
-                  sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
-                    .then(userStr => {
-                      const participants = embedHelper.getParticipants(message);
-                      infoChannel.send(participants, embedHelper.getUserMessage(user.username, participants, userStr, message.url));
-                    }).catch(console.error);
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
+                }).catch(console.error);
+                reaction.remove(user.id).catch(console.log);;
+                return false;
+              } else if (reaction.emoji.name === '💌' || reaction.emoji.name === '📧') {
+                sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
+                .then(userStr => {
+                  const participants = embedHelper.getParticipants(message);
+                  infoChannel.send(participants, embedHelper.getUserMessage(user.username, participants, userStr, message.url));
+                }).catch(console.error);
+                reaction.remove(user.id).catch(console.log);;
+                return false;
               }
             }
           }
