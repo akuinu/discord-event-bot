@@ -115,7 +115,7 @@ client.on('guildDelete', guild => {
 	logToDiscord(embedHelper.getGuildRemoveMessage(guild))
 });
 
-client.on('error', console.error);​
+client.on('error', console.error);
 
 function checkOldMessages(channel){
   channel.fetchMessages()
