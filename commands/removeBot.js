@@ -6,7 +6,7 @@ module.exports = {
 	initRequiered: false,
 	execute(msg, serversConfig) {
 		let events = -1;
-	  if (serversConfig.serversHasEventChannel(msg)) {
+	  if (serversConfig.serversHasEventChannel(msg.guild.id)) {
 	    events = serversConfig.getEventChannel(msg.guild.id).messages.keyArray().length;
 	  }
 	  msg.reply(getBotRemoveConfirmMessage(events))
