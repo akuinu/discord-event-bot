@@ -38,7 +38,7 @@ const expectMessage = (expectedChannel) => {
     const filter = m => tester.user.id !== m.author.id;
     expectedChannel.awaitMessages(filter, { time: 10000, maxMatches: 1, errors: ['time'] })
     .then(messages => {
-      resolve(messages);
+      resolve(messages.first());
     })
     .catch((e) => {
       reject(Error(`No responce in time: ${e}`));
@@ -49,20 +49,23 @@ const expectMessage = (expectedChannel) => {
 const testMagicBox = async (magic)=>{
   return new Promise(async(resolve, reject) => {
     try {
-      testsAmmount++;
+      var o = {};
       if (magic.action == "send") {
-        magic.targetChannel.send(magic.text);
+        o.messageSent = await magic.targetChannel.send(magic.text);
       } else if (magic.action == "react") {
-        magic.targetChannel.messages.get(magic.targetChannel.lastMessageID).react(magic.reaction);
+        o.messageReacted = magic.targetChannel.messages.get(magic.targetChannel.lastMessageID);
+        o.messageReacted.react(magic.reaction);
       }
       if (magic.expect == "message") {
-        var t = await expectMessage(magic.expectedChannel);
+        o.messageRecived = await expectMessage(magic.expectedChannel);
       }
-      console.log(`${testsAmmount}: Passed - ${magic.name}`);
-      resolve(true);
+      if (magic.handel) {
+        resolve( await magic.handel(o))
+      }else {
+        resolve(true);
+      }
     } catch(e) {
-      failsCount++;
-      console.log(`${testsAmmount}: Failed - ${magic.name} \n${e}`);
+      console.log(e);
       resolve(false);
     }
   });
@@ -84,21 +87,34 @@ tester.on('ready',async () => {
       expectedChannel: mainChannle,
       action: "send",
       text:"!help",
-      expect:"message"
+      expect:"message",
+      handel(o){
+        return (o.messageRecived.embeds[0].title === "How to use Event Bot");
+      }
     },
     {name:"testing !config",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
       action: "send",
       text:"!config",
-      expect:"message"
+      expect:"message",
+      handel(o){
+        return (o.messageRecived.embeds[0].title === "Events Bot config is following:");
+      }
     },
     {name:"testing init and setting thins up for following test",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
       action: "send",
       text:`!init ${mainChannle} ${eventChannel}`,
-      expect:"message"
+      expect:"message",
+      handel(o){
+        if (o.messageRecived.embeds[0].title === "Event Bot has been set up for this server.") {
+          return true;
+        }
+        console.log("Not expected message");
+        return false;
+      }
     },
     {name:"event create test",
       targetChannel: mainChannle,
@@ -166,7 +182,13 @@ tester.on('ready',async () => {
   ];
 
   for (var i = 0; i < testCases.length; i++) {
-    await testMagicBox(testCases[i]);
+    testsAmmount++;
+    if (await testMagicBox(testCases[i])) {
+      console.log(`${testsAmmount}: Passed - ${testCases[i].name}`);
+    } else {
+      failsCount++;
+      console.log(`${testsAmmount}: Failed - ${testCases[i].name}`);
+    }
   }
 
   if (failsCount === 0) {
