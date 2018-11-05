@@ -95,7 +95,7 @@ client.on('messageReactionRemove', (reaction, user) => {
   if (serverConfigHelper.isGuildConfigured(reaction.message.guild.id)) {
     if (serverConfigHelper.getEventChannelID(reaction.message.guild.id) == reaction.message.channel.id) {
       if (embedHelper.isEventMessage(reaction.message)) {
-        if(!((/📝|💌|📧|\u2702|⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)) && user.id == embedHelper.getEventCreator(reaction.message))) {
+        if(!((/❌|📝|💌|📧|\u2702|⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)) && user.id == embedHelper.getEventCreator(reaction.message))) {
           serverConfigHelper.updateParticipants(reaction.message);
         }
       }
