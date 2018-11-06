@@ -1,6 +1,10 @@
-const {Collection} = require('discord.js');
+const {Collection, Message} = require('discord.js');
 const embedHelper = require('./embedHelper.js');
 const guilds = new Map();
+const messagesWaitingPromp = new Map;
+// TODO: add a property in guilds map?
+// TODO: add when propt is sent
+// TODO: remove it when prompt is handeled in any way
 
 module.exports = (c, s) => {
   const client = c;
@@ -19,65 +23,69 @@ module.exports = (c, s) => {
     },
     addCollector: function(message){
       const filter = (reaction, user) =>{
+        let triggeredPrompt = false;
         if (user.id == embedHelper.getEventCreator(message)) {
+          if (message.hasActivePrompt() && /❌|📝|💌|📧|\u2702|⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)) {
+            reaction.remove(user.id).catch(console.log);
+            return false;
+          }
           if (reaction.emoji.name == '❌') {
             this.sendDeletionPrompt(reaction.message, user.id);
-            reaction.remove(user.id).catch(console.log);;
+            reaction.remove(user.id).catch(console.log);
             return false;
           } else {
             if (!serversHasInfoChannel(message.guild.id)) {
               message.reply("Some admins have managed to get bot to this awkward state of having events and no info channel.").then(m => m.delete(60000));
             } else {
               const infoChannel = this.getInfoChannel(message.guild.id);
-              switch (reaction.emoji.name) {
-                case '📝':
-                  sendInfoRequestPrompt(infoChannel, user, `Please enter edits, no prefix needed\n for example: \`--seed 31337\``)
-                    .then(userStr => message.edit("", embedHelper.addAttitionalFields(message, userStr)))
-                    .catch(console.error);
-
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
-                case '\u2702': //✂
-                  const fields = embedHelper.getEnumeratedUserFields(message);
-                  if (fields) {
-                    sendInfoRequestPrompt(infoChannel, user, `Please enter numbers what fields you want to remove \n${fields}`)
-                      .then(userStr => message.edit("", embedHelper.removeFields(message, userStr)))
-                      .catch(console.log);
+              if (reaction.emoji.name === '📝') {
+                sendInfoRequestPrompt(infoChannel, user, `Please enter edits, no prefix needed\n for example: \`--seed 31337\``)
+                  .then(userStr => message.edit("", embedHelper.addAttitionalFields(message, userStr)))
+                  .catch(console.error)
+                  .finally(()=>promptResolved(message));
+                triggeredPrompt = true;
+              } else if (reaction.emoji.name === '\u2702') {//✂
+                const fields = embedHelper.getEnumeratedUserFields(message);
+                if (fields) {
+                  sendInfoRequestPrompt(infoChannel, user, `Please enter numbers what fields you want to remove \n${fields}`)
+                  .then(userStr => message.edit("", embedHelper.removeFields(message, userStr)))
+                  .catch(console.log)
+                  .finally(()=>promptResolved(message));
+                  triggeredPrompt = true;
+                } else {
+                  infoChannel.send(user, embedHelper.getFailedCommandMessage(`No field to remove`));
+                }
+              } else if (/⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)) { //all the clocks
+                sendInfoRequestPrompt(infoChannel, user, `Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`)
+                .then(userStr => {
+                  const t = parseInt(userStr.match(/\d+/), 10);
+                  if (5 <= t && t <= 30 ) {
+                    startCountdown(infoChannel, t, embedHelper.getParticipants(message));
                   } else {
-                    infoChannel.send(user, embedHelper.getFailedCommandMessage(`No field to remove`));
+                    infoChannel.send(embedHelper.getFailedCommandMessage("Value has to be between 5 and 30 seconds."));
                   }
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
-                case '⏱':
-                  sendInfoRequestPrompt(infoChannel, user, `Please enter numbers of seconds for countdown. \n  min 5, max 30 seconds`)
-                    .then(userStr => {
-                      const t = parseInt(userStr.match(/\d+/), 10);
-                      if (5 <= t && t <= 30 ) {
-                        startCountdown(infoChannel, t, embedHelper.getParticipants(message));
-                      } else {
-                        infoChannel.send(embedHelper.getFailedCommandMessage("Value has to be between 5 and 30 seconds."));
-                      }
-                    }).catch(console.error);
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
-                case '💌':
-                case '📧':
-                  sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
-                    .then(userStr => {
-                      const participants = embedHelper.getParticipants(message);
-                      infoChannel.send(participants, embedHelper.getUserMessage(user.username, participants, userStr, message.url));
-                    }).catch(console.error);
-                  reaction.remove(user.id).catch(console.log);;
-                  return false;
-                  break;
+                }).catch( e => console.log(e))
+                .finally(()=>promptResolved(message));
+                triggeredPrompt = true;
+              } else if (reaction.emoji.name === '💌' || reaction.emoji.name === '📧') {
+                sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
+                .then(userStr => {
+                  const participants = embedHelper.getParticipants(message);
+                  infoChannel.send(participants, embedHelper.getUserMessage(user.username, participants, userStr, message.url));
+                }).catch(console.error)
+                .finally(()=>promptResolved(message));
+                triggeredPrompt = true;
               }
             }
           }
         }
-        return true;
+        if (triggeredPrompt) {
+          promptSend(message);
+          reaction.remove(user.id).catch(console.log);
+          return false;
+        } else {
+          return true;
+        }
       }
       const collector = message.createReactionCollector(filter);
       collector.on('collect', reaction => {
@@ -218,11 +226,13 @@ module.exports = (c, s) => {
       });
     },
     sendDeletionPrompt: function(message, creatorID){
+      promptSend(message);
       message.channel.send("<@"+creatorID+">", embedHelper.getDeletionPrompt(message.url))
       .then(promptMessage => {
         this.userReactionConfirm(promptMessage,creatorID)
         .then(b => {
-          if (b) message.delete();
+          promptResolved(message)
+          if (b) message.delete().catch(console.error);
         }).catch(console.error);
       }).catch(console.error);
     },
@@ -262,6 +272,20 @@ function serversHasInfoChannel(guildID){
   }
   return false;
 }
+
+function promptSend(message) {
+  messagesWaitingPromp.set(message.id, message);
+}
+
+function promptResolved(message) {
+  if (messagesWaitingPromp.has(message.id)) {
+    messagesWaitingPromp.delete(message.id);
+  }
+}
+
+Message.prototype.hasActivePrompt = function () {
+  return messagesWaitingPromp.has(this.id);
+};
 
 const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
   return new Promise((resolve, reject) => {
