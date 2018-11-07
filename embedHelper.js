@@ -91,6 +91,15 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
+  getEventChannelMoveConfirmMessage: (events) => {
+    const embed = new RichEmbed()
+      .setColor(0xFFFF00)
+      .setTitle("Do you want to move Event Channel?");
+    embed.addField("Number of active that will be deleted:", `${events}`)
+    embed.addField("React to confirm:", "👍 - Remove \t 👎 - Cancle");
+    embed.setOurStuff();
+    return embed;
+  },
   getUserInputRecivedConfirmMessage: (userStr, requestSr) => {
     const embed = new RichEmbed()
       .addField("Recived your input of", userStr)

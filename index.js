@@ -95,7 +95,7 @@ client.on('messageReactionRemove', (reaction, user) => {
   if (serverConfigHelper.isGuildConfigured(reaction.message.guild.id)) {
     if (serverConfigHelper.getEventChannelID(reaction.message.guild.id) == reaction.message.channel.id) {
       if (embedHelper.isEventMessage(reaction.message)) {
-        if(!((['📝','⏱','💌','📧','\u2702'].indexOf(reaction.emoji.name) > -1) && user.id == embedHelper.getEventCreator(reaction.message))) {
+        if(!((/❌|📝|💌|📧|\u2702|⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)) && user.id == embedHelper.getEventCreator(reaction.message))) {
           serverConfigHelper.updateParticipants(reaction.message);
         }
       }
@@ -137,6 +137,8 @@ function checkOldMessages(channel){
 function oldMessageCheck(message){
   if (embedHelper.isEventMessage(message)) {
 		checkIfDeleateRequested(message);
+		///📝|💌|📧|\u2702|⏱|\uD83D[\uDD50-\uDD67]/.test(reaction.emoji.name)
+		// potential problem with not reamusing colock reactions but there are many pick sendInfoRequestPrompt
 		['📝','⏱','💌','📧','\u2702'].forEach(emote => removeCommandEmote(message, emote));
 		serverConfigHelper.addCollector(message);
 		serverConfigHelper.updateParticipants(message);
