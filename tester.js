@@ -194,21 +194,73 @@ tester.on('ready',async () => {
       ]
     },
      // chnage to testing set event/info
-    {name:"set diffrent event channel",
+    {name:"set same event channel(no prompt)",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
       action: "send",
-      text:`!setEvent ${eventChange}`,
+      text:`!setEvent ${eventChannel}`,
       expect:"message",
       handel: (o) => {
         return new Promise((resolve, reject) => {
           if (o.messageRecived.embeds[0].title === "Event Bot settings have been changed.") {
             resolve(true);
+          }else if (o.messageRecived.embeds[0].title === "Do you want to move Event Channel?") {
+            expectMessage(mainChannle).then(messageRecived =>{
+              if (messageRecived.embeds[0].title === "Event Bot settings have been changed."){
+                resolve(true);
+              }else {
+                resolve(false);
+                console.log("unexpected message");
+              }
+            }).catch(e=>{
+              resolve(false);
+              console.log("nothing recived in time");
+            });
+            o.messageRecived.react('👍');
+          } else {
+            resolve(false);
+            console.log("unexpected message");
           }
-          // TODO: change it to handle the prompt
         });
       },
       subtests: [
+        {name:"add event to channel",
+          targetChannel: mainChannle,
+          expectedChannel: eventChannel,
+          action: "send",
+          text:`!event --type just bots doing bot stuff`,
+          expect:"message",
+        },
+        {name:"set diffrent event channel(with prompt)",
+          targetChannel: mainChannle,
+          expectedChannel: mainChannle,
+          action: "send",
+          text:`!setEvent ${eventChange}`,
+          expect:"message",
+          handel: (o) => {
+            return new Promise((resolve, reject) => {
+              if (o.messageRecived.embeds[0].title === "Event Bot settings have been changed.") {
+                resolve(true);
+              }else if (o.messageRecived.embeds[0].title === "Do you want to move Event Channel?") {
+                expectMessage(mainChannle).then(messageRecived =>{
+                  if (messageRecived.embeds[0].title === "Event Bot settings have been changed."){
+                    resolve(true);
+                  }else {
+                    resolve(false);
+                    console.log("unexpected message");
+                  }
+                }).catch(e=>{
+                  resolve(false);
+                  console.log("nothing recived in time");
+                });
+                o.messageRecived.react('👍');
+              } else {
+                resolve(false);
+                console.log("unexpected message");
+              }
+            });
+          }
+        },
         {name:"create event in new event channel",
           targetChannel: mainChannle,
           expectedChannel: eventChange,
