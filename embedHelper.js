@@ -38,7 +38,7 @@ module.exports = {
         + "**--icon url** - Adds corner image\n"
         + "**--img url** - Adds central image")
       .addField("Event message functions:\nAdd Info", "To add another field react event message with 📝\n Then enter command, for example: `--seed 31337`")
-      .addField("Message participants", "To send and ping participants - react event message with 💌")
+      .addField("Message participants", "To send and ping participants - react event message with 📧 (or with 💌 for DM version)")
       .addField("Starting clock", "To start a countdown - react event message with ⏱\n Then enter seconds, min 5, max 30 seconds")
       .addField("Remove Field", "To remove field react event message with \u2702 \n Then enter number, for example: `1, 3`")
       .addField("Delete", "To delete the event creator has to react event message with ❌");

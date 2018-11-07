@@ -315,7 +315,7 @@ tester.on('ready',async () => {
           targetChannel: eventChange,
           expectedChannel: mainChannle,
           action: "react",
-          reaction: '💌',
+          reaction: '📧',
           expect:"message",
           async handel(o){
             o.messageRecived.reply("test");

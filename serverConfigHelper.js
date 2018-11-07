@@ -67,11 +67,22 @@ module.exports = (c, s) => {
                 }).catch( e => console.log(e))
                 .finally(()=>promptResolved(message));
                 triggeredPrompt = true;
-              } else if (reaction.emoji.name === '💌' || reaction.emoji.name === '📧') {
+              } else if (reaction.emoji.name === '📧') {
                 sendInfoRequestPrompt(infoChannel, user, `Please enter your message.`)
                 .then(userStr => {
                   const participants = embedHelper.getParticipants(message);
                   infoChannel.send(participants, embedHelper.getUserMessage(user.username, participants, userStr, message.url));
+                }).catch(console.error)
+                .finally(()=>promptResolved(message));
+                triggeredPrompt = true;
+              } else if (reaction.emoji.name === '💌') {
+                sendInfoRequestPrompt(user, user, `Please enter your message.`)
+                .then(userStr => {
+                  const participants = embedHelper.getParticipants(message);
+                  Promise.all(participants.substring(1).split(" ").map(p => client.fetchUser(p.substring(2, p.length -1))))
+                  .then(users =>{
+                    users.forEach(user => user.send(embedHelper.getUserMessage(user.username, participants, userStr, message.url)));
+                  }).catch(console.error);
                 }).catch(console.error)
                 .finally(()=>promptResolved(message));
                 triggeredPrompt = true;
@@ -291,7 +302,7 @@ const sendInfoRequestPrompt = (infoChannel, user, requestSr) => {
   return new Promise((resolve, reject) => {
     infoChannel.send(user, embedHelper.getUserInputPrompt(requestSr)).then( requestMessage =>{
       const filter = m => user.id === m.author.id;
-      infoChannel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
+      requestMessage.channel.awaitMessages(filter, { time: 60000, maxMatches: 1, errors: ['time'] })
       .then(messages => {
         const userMessage = messages.first();
         userMessage.reply(embedHelper.getUserInputRecivedConfirmMessage(userMessage.content, requestSr)).then(m => m.delete(60000));
