@@ -1,7 +1,8 @@
 var fs = require('fs');
 
-const {Types} = require('./dbObjects');
+const {Servers, Types} = require('./dbObjects');
 
+Servers.sync({ force: true });
 Types.sync({ force: true }).then(() => {
     Types.create({
       name: "default",
@@ -95,7 +96,7 @@ tester.on('ready',async () => {
         });
       }
     },
-    {name:"testing !config",
+    {name:"testing !config (missing)",
       targetChannel: mainChannle,
       expectedChannel: mainChannle,
       action: "send",
@@ -103,7 +104,7 @@ tester.on('ready',async () => {
       expect:"message",
       handel: (o) => {
         return new Promise((resolve, reject) => {
-          resolve(o.messageRecived.embeds[0].title === "Events Bot config is following:");
+          resolve(o.messageRecived.embeds[0].title === "Event Bot can't act if no instructions have been given.");
         });
       }
     },
@@ -122,7 +123,21 @@ tester.on('ready',async () => {
             resolve(false);
           }
         });
-      }
+      },
+      subtests: [
+        {name:"testing !config (configured)",
+          targetChannel: mainChannle,
+          expectedChannel: mainChannle,
+          action: "send",
+          text:"!config",
+          expect:"message",
+          handel: (o) => {
+            return new Promise((resolve, reject) => {
+              resolve(o.messageRecived.embeds[0].title === "Events Bot config is following:");
+            });
+          }
+        },
+      ]
     },
     {name:"event create test",
       targetChannel: mainChannle,
@@ -361,6 +376,9 @@ tester.on('ready',async () => {
 
   if (failsCount === 0) {
     console.log(`\x1b[32mAll ${testsAmmount} of the tests Passed\x1b[0m.`);
+    process.exit(0);
+  } if (failsCount < 3) {
+    console.log("\x1b[33m%s\x1b[0m", `Failure: ${failsCount} out of ${testsAmmount} tests failed.`);
     process.exit(0);
   }else {
     console.log("\x1b[31m%s\x1b[0m", `Failure: ${failsCount} out of ${testsAmmount} tests failed.`);
