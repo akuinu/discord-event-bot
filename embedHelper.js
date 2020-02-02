@@ -62,7 +62,7 @@ module.exports = {
   },
   getInvitesMessage: (link) => {
     const embed = new RichEmbed()
-      .addField("Invite link", link)
+      .addField("Invite link", `[Invite Link](${link})`)
       .addField("Bot Demo Server", "https://discord.gg/hur62Tp")
       .addField("Event Bot source code", "https://github.com/akuinu/discord-event-bot")
       .addBlankField()
