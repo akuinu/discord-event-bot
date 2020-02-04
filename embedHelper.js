@@ -394,7 +394,7 @@ RichEmbed.prototype.createFields = function(command){
         this.setColor(args.shift());
       break;
       default:
-        this.addField(optionType, trimOptions(option), true);
+        this.addField(optionType + ':', trimOptions(option), true);
         break;
     }
   });
