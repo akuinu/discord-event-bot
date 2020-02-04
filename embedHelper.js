@@ -359,7 +359,8 @@ RichEmbed.prototype.createFields = function(command){
   const options = command.split('--');
   options.forEach(option => {
     const args = option.split(' ');
-    switch(args.shift()) {
+    const optionType = args.shift()
+    switch(optionType) {
       case 'type':
         this.addField("Race type:", trimOptions(option), true);
       break;
@@ -374,6 +375,10 @@ RichEmbed.prototype.createFields = function(command){
       break;
       case 'seed':
         this.addField("Seed:", trimOptions(option), true);
+      case 'info':
+        this.addField("Info:", trimOptions(option), true);
+      case 'movie':
+        this.addField("Movie:", trimOptions(option), true);
       break;
       case 'location':
         this.addField("Location:", trimOptions(option), true);
@@ -388,6 +393,9 @@ RichEmbed.prototype.createFields = function(command){
       case 'colour': // fall through
         this.setColor(args.shift());
       break;
+      default:
+        this.addField(optionType, trimOptions(option), true);
+        break;
     }
   });
 };
