@@ -1,7 +1,7 @@
 const {getEventMessage} = require('.././embedHelper.js');
 module.exports = {
 	name: 'event',
-	aliases: ['race', 'raid'],
+	aliases: ['race', 'raid', 'visit'],
 	description: 'make event',
 	adminOnly: false,
 	initRequiered: true,

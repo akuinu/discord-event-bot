@@ -6,12 +6,12 @@ module.exports = {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("Hello people, \nI am Event Bot, I help you to host community events.")
-      .addField("Setting up: "+ prefix +"init <event info channel> <event annoucment channel> <role>",
-        "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
-        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
+      .addField("Setting up: " + prefix + "init <event info channel> <event annoucment channel> <role>",
+        "**<event info channel>** - channel where I will listen for commands and You plan your events\n" +
+        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n" +
         "**<role>** - role of people that can host and take part of events")
       .addBlankField()
-      .addField("More commands info:", ""+ prefix +"info");
+      .addField("More commands info:", "" + prefix + "info");
     embed.setOurStuff();
     return embed;
   },
@@ -23,17 +23,13 @@ module.exports = {
     embed.setOurStuff();
     return embed;
   },
-  getHelpMessage: (prefix = "!", admin = false) => {
+  getHelpMessage: (prefix = "!", eventConfig , admin = false) => {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("How to use Event Bot")
       .addField("Creating event message:",
-        `Start the command with \`${prefix}event\` followed by following options:\n`
-        + "**--date text** - Creates \"Date:\" field with text\n"
-        + "**--type text** - Creates \"Event type:\" field with text\n"
-        + "**--time text** - ឵Creates \"Time:\" field with text\n"
-        + "**--rules text** - Creates \"Rules:\" field with text\n"
-        + "**--seed text** - Creates \"Seed:\" field with text\n"
+        `Start the command with \`${prefix}${eventConfig.name}\` followed by following options:\n`
+        + `${eventConfig.help} \n`
         + "**--colour text** - Set colour one the side with HEX string (\"0xFF0000\" - red by default)\n"
         + "**--icon url** - Adds corner image\n"
         + "**--img url** - Adds central image")
@@ -44,18 +40,18 @@ module.exports = {
       .addField("Delete", "To delete the event creator has to react event message with ❌");
     if (admin) {
       embed.addBlankField()
-      .addField("Setting up:", `\`${prefix}init <event info channel> <event annoucment channel> <role>\`\n`+
-        "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
-        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
-        "**<role>** - role of people that can host and take part of events")
-      .addField("Change info channel", "`"+ prefix +"setInfo <channel>`")
-      .addField("Change event channel", "`"+ prefix +"setEvent <channel>`")
-      .addField("Change requiered participants role", "`"+ prefix +"setRole <role>`")
-      .addField("Remove requiered participants role", "`"+ prefix +"removeRole`")
-      .addField("Change requiered organizers role", "`"+ prefix +"setOrganizer <role>`")
-      .addField("Remove requiered organizers role", "`"+ prefix +"removeOrganizer`")
-      .addField("Change Event Bot prefix", "`"+ prefix +"<newPrefix>`")
-      .addField("Remove Event Bot", "`"+ prefix +"removeBot`")
+        .addField("Setting up:", `\`${prefix}init <event info channel> <event annoucment channel> <role>\`\n` +
+          "**<event info channel>** - channel where I will listen for commands and You plan your events\n" +
+          "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n" +
+          "**<role>** - role of people that can host and take part of events")
+        .addField("Change info channel", "`" + prefix + "setInfo <channel>`")
+        .addField("Change event channel", "`" + prefix + "setEvent <channel>`")
+        .addField("Change requiered participants role", "`" + prefix + "setRole <role>`")
+        .addField("Remove requiered participants role", "`" + prefix + "removeRole`")
+        .addField("Change requiered organizers role", "`" + prefix + "setOrganizer <role>`")
+        .addField("Remove requiered organizers role", "`" + prefix + "removeOrganizer`")
+        .addField("Change Event Bot prefix", "`" + prefix + "<newPrefix>`")
+        .addField("Remove Event Bot", "`" + prefix + "removeBot`")
     }
     embed.setOurFooter();
     return embed;
@@ -121,7 +117,7 @@ module.exports = {
   getEventMessage: (msg, eventConfig) => {
     const embed = new RichEmbed()
       .setColor(0xFF0000)
-      .setAuthor(eventConfig.authorField +  msg.author.username,  msg.author.displayAvatarURL);
+      .setAuthor(eventConfig.authorField + msg.author.username, msg.author.displayAvatarURL);
     embed.createFields(msg.content);
     embed.addField(eventConfig.participants, '\u200B')
       .addBlankField()
@@ -131,26 +127,28 @@ module.exports = {
   },
   addAttitionalFields: (message, text) => {
     const embed = new RichEmbed(message.embeds[0]);
-    const tempEmbedFields = embed.fields.splice(embed.fields.length-3, 3);
+    const tempEmbedFields = embed.fields.splice(embed.fields.length - 3, 3);
     embed.createFields(text);
     while (tempEmbedFields.length > 0) {
-      embed.fields.splice(embed.fields.length, 0,  tempEmbedFields.shift());
+      embed.fields.splice(embed.fields.length, 0, tempEmbedFields.shift());
     }
     return embed;
   },
   getEventCreator: (message) => {
     const embed = new RichEmbed(message.embeds[0]);
-    const userTag = embed.fields[embed.fields.length-1].value.split(' ').pop();
-    return userTag.substring(2,userTag.length -1);
+    const userTag = embed.fields[embed.fields.length - 1].value.split(' ').pop();
+    return userTag.substring(2, userTag.length - 1);
   },
   removeFields: (message, text) => {
     const embed = new RichEmbed(message.embeds[0]);
-    let remouvals = text.split(/,?\s+/).map(function(item) {return parseInt(item, 10) - 1;});
+    let remouvals = text.split(/,?\s+/).map(function (item) {
+      return parseInt(item, 10) - 1;
+    });
     remouvals = [...new Set(remouvals)];
     remouvals.sort((a, b) => a - b);
-    if (remouvals[0] >= 0 && remouvals[remouvals.length-1] <  embed.fields.length - 3) {
+    if (remouvals[0] >= 0 && remouvals[remouvals.length - 1] < embed.fields.length - 3) {
       for (var i = 0; i < remouvals.length; i++) {
-        embed.fields.splice(remouvals[i]-i, 1);
+        embed.fields.splice(remouvals[i] - i, 1);
       }
     }
     return embed;
@@ -161,21 +159,21 @@ module.exports = {
   },
   getUpdatedParticipants: (message, participants) => {
     const embed = new RichEmbed(message.embeds[0]);
-    if (embed.fields[embed.fields.length-3].value !== participants) {
-      embed.fields[embed.fields.length-3].value = participants;
+    if (embed.fields[embed.fields.length - 3].value !== participants) {
+      embed.fields[embed.fields.length - 3].value = participants;
       return embed;
     }
     return null;
   },
   getParticipants: (message) => {
     const embed = new RichEmbed(message.embeds[0]);
-    return embed.fields[embed.fields.length-3].value;
+    return embed.fields[embed.fields.length - 3].value;
   },
   getEnumeratedUserFields: (message) => {
     const embed = new RichEmbed(message.embeds[0]);
     let fields = "";
-    if (embed.fields.length -3 > 0) {
-      for (var i = 0; i < embed.fields.length -3; i++) {
+    if (embed.fields.length - 3 > 0) {
+      for (var i = 0; i < embed.fields.length - 3; i++) {
         fields += `${i + 1} - ${embed.fields[i].name} \n`;
       }
       return fields;
@@ -196,7 +194,7 @@ module.exports = {
     if (configured) {
       embed.setTitle("Event Bot has been set up for this server.")
         .setColor("0x00FF00");
-    }else{
+    } else {
       embed.setTitle("Event Bot has been partially configured!")
         .setColor("0xFFFF00");
     }
@@ -207,10 +205,10 @@ module.exports = {
     const embed = new RichEmbed()
       .setColor(0x00FF00)
       .setTitle("Events Bot config is following:")
-      .addField("Info Channel:",server.infoChannelID?`<#${server.infoChannelID}>`:"Not set up")
-      .addField("Event Channel:",server.eventChannelID?`<#${server.eventChannelID}>`:"Not set up")
-      .addField("Participation restriction:",server.roleID?`Only <@&${server.roleID}> can join events`:"Everybody can join events")
-      .addField("Organizer restriction:", server.organizerID ?`Only <@&${server.organizerID}> can host events`:(server.roleID?`Only <@&${server.roleID}> can host events`:"Everybody can creat events"))
+      .addField("Info Channel:", server.infoChannelID ? `<#${server.infoChannelID}>` : "Not set up")
+      .addField("Event Channel:", server.eventChannelID ? `<#${server.eventChannelID}>` : "Not set up")
+      .addField("Participation restriction:", server.roleID ? `Only <@&${server.roleID}> can join events` : "Everybody can join events")
+      .addField("Organizer restriction:", server.organizerID ? `Only <@&${server.organizerID}> can host events` : (server.roleID ? `Only <@&${server.roleID}> can host events` : "Everybody can creat events"))
 
     embed.setOurStuff();
     return embed;
@@ -295,10 +293,10 @@ module.exports = {
       .setColor("0xFFFF00")
       .setTitle("Event Bot can't act if no instructions have been given.")
       .addField("Setting up: !init <event info channel> <event annoucment channel> <role>",
-        "**<event info channel>** - channel where I will listen for commands and You plan your events\n"+
-        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n"+
+        "**<event info channel>** - channel where I will listen for commands and You plan your events\n" +
+        "**<event annoucment channel>** - channel where I post events- I would be happy if there would be to have message edit permssion in that channel, but I can without it.\n" +
         "**<role>** - role of people that can host and take part of events")
-      .addField("For example:","!init #race-discussions #race-announcments  @runners");
+      .addField("For example:", "!init #race-discussions #race-announcments  @runners");
     embed.setOurStuff();
     return embed;
   },
@@ -355,46 +353,58 @@ module.exports = {
   },
 };
 
-RichEmbed.prototype.createFields = function(command){
+RichEmbed.prototype.createFields = function (command) {
   const options = command.split('--');
   options.forEach(option => {
     const args = option.split(' ');
     const optionType = args.shift()
-    switch(optionType) {
+    switch (optionType) {
       case 'type':
         this.addField("Race type:", trimOptions(option), true);
-      break;
+        break;
       case 'date':
         this.addField("Date:", trimOptions(option), true);
-      break;
+        break;
       case 'time':
         this.addField("Time:", trimOptions(option), true);
-      break;
+        break;
       case 'rules':
         this.addField("Rules:", trimOptions(option), true);
-      break;
+        break;
       case 'seed':
         this.addField("Seed:", trimOptions(option), true);
       case 'info':
         this.addField("Info:", trimOptions(option), true);
+        break;
       case 'movie':
         this.addField("Movie:", trimOptions(option), true);
-      break;
+        break;
       case 'location':
         this.addField("Location:", trimOptions(option), true);
-      break;
+        break;
+      case 'dodo':
+      case 'dodocode':
+        this.addField("Dodo code:", trimOptions(option), true);
+        break;
+      case 'friend':
+      case 'friendcode':
+        this.addField("Friend code:", trimOptions(option), true);
+        break;
+      case 'turnip':
+        this.addField("Turnip price:", trimOptions(option), true);
+        break;
       case 'icon':
         this.setThumbnail(args.shift());
-      break;
+        break;
       case 'img':
         this.setImage(args.shift());
-      break;
+        break;
       case 'color':
       case 'colour': // fall through
         this.setColor(args.shift());
-      break;
+        break;
       default:
-        if (optionType && trimOptions(option)){
+        if (optionType && trimOptions(option)) {
           this.addField(optionType + ':', trimOptions(option), true);
         }
         break;
@@ -402,20 +412,20 @@ RichEmbed.prototype.createFields = function(command){
   });
 };
 
-RichEmbed.prototype.setOurStuff = function(){
+RichEmbed.prototype.setOurStuff = function () {
   this.setOurFooter();
   //this.setThumbnail('attachment://EB.png');
   this.setThumbnail('https://raw.githubusercontent.com/akuinu/discord-event-bot/master/assets/EB.png');
 };
 
-RichEmbed.prototype.setOurFooter = function(footerText = "Powered by Event Bot"){
+RichEmbed.prototype.setOurFooter = function (footerText = "Powered by Event Bot") {
   this.setFooter(footerText, 'https://raw.githubusercontent.com/akuinu/discord-event-bot/master/assets/EB.png');
   //this.setFooter(footerText, 'attachment://EB.png');
   //this.attachFiles(['./assets/EB.png'])
   this.setTimestamp(new Date);
 };
 
-function trimOptions(str){
+function trimOptions(str) {
   const n = str.split(" ")[0].length;
-  return str.substring(n).trim().replace(/\\n/gm,"\n")
+  return str.substring(n).trim().replace(/\\n/gm, "\n")
 }
