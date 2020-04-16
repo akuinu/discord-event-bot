@@ -22,6 +22,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       defaultValue: "Runners:",
       allowNull: false
-    }
+    },
+    help: {
+      type: DataTypes.STRING,
+      defaultValue: "No help for you",
+      allowNull: false
+    },
 	});
 }

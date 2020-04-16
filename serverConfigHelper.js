@@ -44,7 +44,7 @@ module.exports = (c, s) => {
                   .catch(console.error)
                   .finally(()=>promptResolved(message));
                 triggeredPrompt = true;
-              } else if (reaction.emoji.name === '\u2702') {//✂
+              } else if (reaction.emoji.name === '✂️') {
                 const fields = embedHelper.getEnumeratedUserFields(message);
                 if (fields) {
                   sendInfoRequestPrompt(infoChannel, user, `Please enter numbers what fields you want to remove \n${fields}`)
