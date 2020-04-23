@@ -121,7 +121,7 @@ module.exports = {
     embed.createFields(msg.content);
     embed.addField(eventConfig.participants, '\u200B')
       .addBlankField()
-      .addField("React to join.", `If have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
+      .addField("**React to join.**", `To show your interest **react** to this message with anything.\nIf have any questions feel free to ask in ${msg.channel} or contact ${msg.author}`);
     embed.setOurFooter();
     return embed;
   },
